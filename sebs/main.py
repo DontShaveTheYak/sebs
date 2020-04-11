@@ -3,9 +3,9 @@
 Module Docstring
 """
 
-__author__ = "Your Name"
+__authors__ = ["Levi Blaney", "Neha Singh"]
 __version__ = "0.1.0"
-__license__ = "MIT"
+__license__ = "GPLv3"
 
 import argparse
 
@@ -20,11 +20,7 @@ if __name__ == "__main__":
     """ This is executed when run from the command line """
     parser = argparse.ArgumentParser()
 
-    # Required positional argument
-    parser.add_argument("arg", help="Required positional argument")
-
-    # Optional argument flag which defaults to False
-    parser.add_argument("-f", "--flag", action="store_true", default=False)
+    parser.add_argument('-b','--backup', action='append', help='<Required> List of Devices to Backup', required=True)
 
     # Optional argument which requires a parameter (eg. -d test)
     parser.add_argument("-n", "--name", action="store", dest="name")
