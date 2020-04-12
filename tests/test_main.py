@@ -1,5 +1,5 @@
 import unittest
-from sebs import __main__
+from sebs.__main__ import main
 
 
 class TestApplicaton(unittest.TestCase):
