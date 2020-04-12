@@ -1,7 +1,4 @@
-import io
-import sys
 import unittest
-import contextlib
 from sebs.cli import parse_args
 
 
