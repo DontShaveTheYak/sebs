@@ -8,8 +8,8 @@ __version__ = "0.1.0"
 __license__ = "GPLv3"
 
 import sys
-import cli
-from ec2 import Instance
+from sebs.cli import parse_args
+from sebs.ec2 import Instance
 
 
 def main(args):
@@ -38,5 +38,5 @@ def main(args):
 if __name__ == "__main__":
     """ This is executed when run from the command line """
 
-    args = cli.parse_args()
+    args = parse_args(sys.argv[1:], __version__)
     main(args)
