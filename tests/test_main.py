@@ -1,5 +1,6 @@
 import unittest
-from sebs.__main__ import main
+# Import causes problems with other test files =/
+# from sebs.__main__ import main
 
 
 class TestApplicaton(unittest.TestCase):
