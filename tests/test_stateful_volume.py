@@ -66,7 +66,7 @@ class TestStatefulVolume(unittest.TestCase):
         self.module_patcher = patch.dict('sys.modules', modules)
         self.module_patcher.start()
 
-        from sebs.ec2 import StatefulVolume, Instance
+        from sebs.ec2 import StatefulVolume
 
         self.StatefulVolume = StatefulVolume
 
