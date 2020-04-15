@@ -4,7 +4,6 @@ import requests
 from ec2_metadata import ec2_metadata
 
 
-
 class Instance:
     def __init__(self):
         self.instance = self.get_instance()
@@ -57,18 +56,19 @@ class Instance:
 
 
 class StatefulVolume:
-    def __init__(self, deviceName):
+    def __init__(self, deviceName, tag_name):
         self.deviceName = deviceName
         self.ready = False
         self.status = 'Unknown'
-        self.volume
+        self.volume = None
+        self.tag_name = tag_name
 
     def get_status(self):
         client = boto3.client('ec2')
         response = client.describe_volumes(
             Filters=[
                 {
-                    'Name': 'tag:{}'.format(args.name),
+                    'Name': 'tag:{}'.format(self.tag_name),
                     'Values': [
                         self.deviceName,
                     ]
@@ -80,7 +80,7 @@ class StatefulVolume:
             # No previous volume found
             self.status = 'New'
             # Might have to do other stuffs
-        elif response['Volumes'].size() != 1:
+        elif len(response['Volumes']) != 1:
             # too many volumes found
             self.status = 'Duplicate'
             # Might have to do other stuffs
