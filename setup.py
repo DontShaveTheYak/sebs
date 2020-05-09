@@ -22,5 +22,6 @@ setuptools.setup(
         'boto3',
         'ec2-metadata'
     ],
+    scripts=['bin/sebs'],
     python_requires='>=3.6',
 )
