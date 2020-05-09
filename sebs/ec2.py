@@ -5,8 +5,9 @@ from ec2_metadata import ec2_metadata
 
 
 class Instance:
-    def __init__(self):
+    def __init__(self, volume_tag):
         self.instance = self.get_instance()
+        self.volume_tag = volume_tag
         self.backup = []
 
     def get_instance(self):
@@ -36,7 +37,7 @@ class Instance:
 
     def add_stateful_device(self, device_name):
 
-        sv = StatefulVolume(device_name)
+        sv = StatefulVolume(self.instance.id, device_name, self.volume_tag)
 
         sv.get_status()
 
