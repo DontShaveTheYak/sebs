@@ -56,8 +56,9 @@ class Instance:
 
 
 class StatefulVolume:
-    def __init__(self, deviceName, tag_name):
-        self.deviceName = deviceName
+    def __init__(self, instance_id, device_name, tag_name):
+        self.instance_id = instance_id
+        self.device_name = device_name
         self.ready = False
         self.status = 'Unknown'
         self.volume = None
@@ -65,12 +66,14 @@ class StatefulVolume:
 
     def get_status(self):
         client = boto3.client('ec2')
+        ec2 = boto3.resource('ec2')
+
         response = client.describe_volumes(
             Filters=[
                 {
                     'Name': 'tag:{}'.format(self.tag_name),
                     'Values': [
-                        self.deviceName,
+                        self.device_name,
                     ]
                 },
             ]
@@ -79,7 +82,27 @@ class StatefulVolume:
         if not response['Volumes']:
             # No previous volume found
             self.status = 'New'
-            # Might have to do other stuffs
+
+            response = client.describe_volumes(
+                Filters=[
+                    {
+                        'Name': 'attachment.instance-id',
+                        'Values': [
+                            self.instance_id,
+                        ]
+                    },
+                ]
+            )
+
+            if not response['Volumes']:
+                print(
+                    f"Could not find {self.device_name} for {self.instance_id}")
+                sys.exit(2)
+
+            volumeId = response['Volumes'][0]['VolumeId']
+
+            self.volume = ec2.Volume(volumeId)
+
         elif len(response['Volumes']) != 1:
             # too many volumes found
             self.status = 'Duplicate'
@@ -89,7 +112,6 @@ class StatefulVolume:
             volumeId = response['Volumes'][0]['VolumeId']
             self.status = 'Not Attached'
 
-            ec2 = boto3.resource('ec2')
             self.volume = ec2.Volume(volumeId)
             # Might have to do other stuffs
         return self.status
@@ -100,8 +122,13 @@ class StatefulVolume:
         if self.status != 'New':
             return self.status
 
-        # Find the volumeID of the attached Device and tag it
-        pass
+        self.volume.create_tags(Tags=[
+            {
+                'Key': self.tag_name,
+                'Value': self.device_name
+            },
+        ]
+        )
 
     def copy(self, target_az):
         # If the current volume az is in the target AZ do nothing
