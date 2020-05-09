@@ -64,12 +64,12 @@ class StatefulVolume:
         self.status = 'Unknown'
         self.volume = None
         self.tag_name = tag_name
+        self.ec2_client = boto3.client('ec2')
+        self.ec2_resource = boto3.resource('ec2')
 
     def get_status(self):
-        client = boto3.client('ec2')
-        ec2 = boto3.resource('ec2')
 
-        response = client.describe_volumes(
+        response = self.ec2_client.describe_volumes(
             Filters=[
                 {
                     'Name': 'tag:{}'.format(self.tag_name),
@@ -84,7 +84,7 @@ class StatefulVolume:
             # No previous volume found
             self.status = 'New'
 
-            response = client.describe_volumes(
+            response = self.ec2_client.describe_volumes(
                 Filters=[
                     {
                         'Name': 'attachment.instance-id',
@@ -102,7 +102,7 @@ class StatefulVolume:
 
             volumeId = response['Volumes'][0]['VolumeId']
 
-            self.volume = ec2.Volume(volumeId)
+            self.volume = self.ec2_resource.Volume(volumeId)
 
         elif len(response['Volumes']) != 1:
             # too many volumes found
@@ -113,7 +113,7 @@ class StatefulVolume:
             volumeId = response['Volumes'][0]['VolumeId']
             self.status = 'Not Attached'
 
-            self.volume = ec2.Volume(volumeId)
+            self.volume = self.ec2_resource.Volume(volumeId)
             # Might have to do other stuffs
         return self.status
 
@@ -136,9 +136,95 @@ class StatefulVolume:
         if target_az == self.volume.availability_zone:
             return
 
-        # else make a snapshot and get a new device created in the correct AZ
-        pass
+        snapshot = self.volume.create_snapshot(
+            Description='Intermediate snapshot for SEBS.',
+            TagSpecifications=[
+                {
+                    'ResourceType': 'snapshot',
+                    'Tags': [
+                        {
+                            'Key': self.tag_name,
+                            'Value': self.device_name
+                        },
+                    ]
+                },
+            ]
+        )
+
+        # Not sure but we probably have to wait until its completed
+        snapshot.wait_until_completed()
+
+        response = self.ec2_client.create_volume(
+            AvailabilityZone=target_az,
+            Encrypted=snapshot.encrypted,
+            Iops=self.volume.iops,
+            KmsKeyId=self.volume.kms_key_id,
+            OutpostArn=self.volume.outpost_arn,
+            Size=self.volume.size,
+            SnapshotId=snapshot.snapshot_id,
+            VolumeType=self.volume.volume_type,
+            TagSpecifications=[
+                {
+                    'ResourceType': 'volume',
+                    'Tags': [
+                        {
+                            'Key': self.tag_name,
+                            'Value': self.device_name,
+                        },
+                    ]
+                },
+            ]
+        )
+
+        # Cleanup this temporary snapshot
+        snapshot.delete()
+
+        self.volume = self.ec2_resource.Volume(response['VolumeId'])
+
+        waiter = self.ec2_client.get_waiter('volume_available')
+
+        waiter.wait(self.volume.volume_id)
 
     def attach(self, instance):
-        # if not attached to the current instance then attach it and set the status to attached
-        pass
+
+        # Need to find and delete any current volumes
+        response = self.ec2_client.describe_volumes(
+            Filters=[
+                {
+                    'Name': 'attachment.instance-id',
+                    'Values': [
+                        self.instance_id,
+                    ]
+                },
+                {
+                    'Name': 'attachment.device',
+                    'Values': [
+                        self.device_name,
+                    ]
+                },
+            ]
+        )
+
+        if response['Volumes']:
+            prev_volume = self.ec2_resource.Volume(
+                response['Volumes']['VolumeId'])
+
+            pre_volume.detach_from_instance(
+                Device=self.device_name,
+                InstanceId=self.instance_id
+            )
+
+            waiter = self.ec2_client.get_waiter('volume_available')
+
+            waiter.wait(prev_volume.volume_id)
+
+            prev_volume.delete()
+
+        self.volume.attach_to_instance(
+            Device=self.device_name,
+            InstanceId=self.instance_id
+        )
+
+        waiter = self.ec2_client.get_waiter('volume_in_use')
+
+        waiter.wait(self.volume.volume_id)
