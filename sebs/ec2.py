@@ -133,6 +133,8 @@ class StatefulVolume:
         )
 
     def copy(self, target_az):
+        if self.status == 'New':
+            return self.status
         # If the current volume az is in the target AZ do nothing
         if target_az == self.volume.availability_zone:
             return
@@ -189,6 +191,9 @@ class StatefulVolume:
         waiter.wait(self.volume.volume_id)
 
     def attach(self):
+        if self.status == 'New':
+            return self.status
+
         print(f'Attaching {self.volume.volume_id} to {self.instance_id}')
         # Need to find and delete any current volumes
         response = self.ec2_client.describe_volumes(
