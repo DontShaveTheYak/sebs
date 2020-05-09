@@ -215,7 +215,7 @@ class StatefulVolume:
 
         if response['Volumes']:
             prev_volume = self.ec2_resource.Volume(
-                response['Volumes']['VolumeId'])
+                response['Volumes'][0]['VolumeId'])
 
             pre_volume.detach_from_instance(
                 Device=self.device_name,
