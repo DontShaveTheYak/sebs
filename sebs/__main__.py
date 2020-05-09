@@ -17,6 +17,8 @@ def main(args):
     # Get a handler for the current EC2 instance
     server = Instance(args.name)
 
+    print(f'Running on {server.instance.instance_id}')
+
     # Add the requested Stateful Devices to the server
     for device in args.backup:
         server.add_stateful_device(device)
@@ -28,7 +30,7 @@ def main(args):
     server.tag_stateful_volumes()
 
     # I think we done?
-
+    print('All done')
     sys.exit()
 
 
