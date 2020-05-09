@@ -24,7 +24,7 @@ class Instance:
             sys.exit(1)
 
         try:
-            ec2 = boto3.resource('ec2')
+            ec2 = boto3.resource('ec2', region_name=ec2_metadata.region)
             instance = ec2.Instance(instance_id)
             # We have to call load to see if we are really connected
             instance.load()
@@ -64,8 +64,9 @@ class StatefulVolume:
         self.status = 'Unknown'
         self.volume = None
         self.tag_name = tag_name
-        self.ec2_client = boto3.client('ec2')
-        self.ec2_resource = boto3.resource('ec2')
+        self.ec2_client = boto3.client('ec2', region_name=ec2_metadata.region)
+        self.ec2_resource = boto3.resource(
+            'ec2', region_name=ec2_metadata.region)
 
     def get_status(self):
 

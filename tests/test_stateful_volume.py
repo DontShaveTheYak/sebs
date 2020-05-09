@@ -31,7 +31,8 @@ class TestStatefulVolume(unittest.TestCase):
         self.boto3.resource = self.mock_resource
 
         modules = {
-            'boto3': self.boto3
+            'boto3': self.boto3,
+            'ec2_metadata': MagicMock()
         }
 
         self.instance_id = 'i-1234567890abcdef0'
