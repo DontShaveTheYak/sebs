@@ -36,7 +36,7 @@ class Instance:
         return instance
 
     def add_stateful_device(self, device_name):
-
+        print(f'Handling {device_name}')
         sv = StatefulVolume(self.instance.id, device_name, self.volume_tag)
 
         sv.get_status()
@@ -44,16 +44,15 @@ class Instance:
         self.backup.append(sv)
 
     def tag_stateful_volumes(self):
-        # Loop thrugh the volumes and call "tag_volume" on them.
-        pass
+
+        for sv in self.backup:
+            sv.tag_volume()
 
     def attach_stateful_volumes(self):
 
         for sv in self.backup:
-            # call copy on the volume
-
-            # call attach on the volume
-            pass
+            sv.copy(ec2_metadata.availability_zone)
+            sv.attach()
 
 
 class StatefulVolume:
@@ -116,11 +115,12 @@ class StatefulVolume:
 
             self.volume = self.ec2_resource.Volume(volumeId)
             # Might have to do other stuffs
+
+        print(f'{self.device_name} is {self.status}')
         return self.status
 
     def tag_volume(self):
-        # If status is 'New' Find the new volume and tag it
-
+        print(f'Tagging {self.volume.volume_id} with control tag.')
         if self.status != 'New':
             return self.status
 
@@ -136,6 +136,8 @@ class StatefulVolume:
         # If the current volume az is in the target AZ do nothing
         if target_az == self.volume.availability_zone:
             return
+
+        print(f'Copying {self.volume.volume_id} to {target_az}')
 
         snapshot = self.volume.create_snapshot(
             Description='Intermediate snapshot for SEBS.',
@@ -186,8 +188,8 @@ class StatefulVolume:
 
         waiter.wait(self.volume.volume_id)
 
-    def attach(self, instance):
-
+    def attach(self):
+        print(f'Attaching {self.volume.volume_id} to {self.instance_id}')
         # Need to find and delete any current volumes
         response = self.ec2_client.describe_volumes(
             Filters=[
