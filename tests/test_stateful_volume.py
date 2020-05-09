@@ -3,7 +3,7 @@ import unittest
 import datetime
 import botocore.session
 from botocore.stub import Stubber, ANY
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, Mock
 
 
 class TestStatefulVolume(unittest.TestCase):
@@ -20,7 +20,9 @@ class TestStatefulVolume(unittest.TestCase):
         self.boto3.client = self.mock_client
 
         # Setup resource and volume mocks
-        self.mock_volume = MagicMock(name='volume_mock')
+        self.actual_volume = Mock(name='actual_volume')
+        self.mock_volume = MagicMock(
+            name='volume_mock', return_value=self.actual_volume)
         self.mock_volume_class = MagicMock(
             name='volume_class_mock', return_value=self.mock_volume)
         self.mock_volume_class.Volume = self.mock_volume
@@ -31,6 +33,10 @@ class TestStatefulVolume(unittest.TestCase):
         modules = {
             'boto3': self.boto3
         }
+
+        self.instance_id = 'i-1234567890abcdef0'
+        self.tag_name = 'sebs'
+        self.device_name = 'xdf'
 
         self.default_response = {
             'Volumes': [
@@ -44,7 +50,7 @@ class TestStatefulVolume(unittest.TestCase):
                     'Size': 123,
                     'SnapshotId': 'string',
                     'State': 'available',
-                    'VolumeId': 'string',
+                    'VolumeId': 'vol-XXXXXX',
                     'Iops': 123,
                     'Tags': [
                         {
@@ -82,12 +88,22 @@ class TestStatefulVolume(unittest.TestCase):
         self.stubber.add_response(
             'describe_volumes', response, self.default_params)
 
-        sv = self.StatefulVolume('xdf', 'test')
+        self.stubber.add_response(
+            'describe_volumes', self.default_response, {'Filters': [
+                {
+                    'Name': 'attachment.instance-id',
+                    'Values': [self.instance_id]
+                }
+            ]})
 
-        status = sv.get_status()
+        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
+
+        sv.get_status()
 
         self.stubber.assert_no_pending_responses()
         self.assertEqual(sv.status, 'New', 'Should be a new Volume')
+        self.assertIsInstance(sv.volume, Mock,
+                              'Should be our volume mock')
 
     def test_duplicate_volumes(self):
 
@@ -97,9 +113,9 @@ class TestStatefulVolume(unittest.TestCase):
         self.stubber.add_response(
             'describe_volumes', response, self.default_params)
 
-        sv = self.StatefulVolume('xdf', 'test')
+        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
 
-        status = sv.get_status()
+        sv.get_status()
 
         self.stubber.assert_no_pending_responses()
         self.assertEqual(sv.status, 'Duplicate',
@@ -110,27 +126,57 @@ class TestStatefulVolume(unittest.TestCase):
         self.stubber.add_response(
             'describe_volumes', self.default_response, self.default_params)
 
-        sv = self.StatefulVolume('xdf', 'test')
+        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
 
-        status = sv.get_status()
+        sv.get_status()
 
         self.stubber.assert_no_pending_responses()
         self.assertEqual(sv.status, 'Not Attached',
                          'Should find an existing volume')
-        self.assertIsInstance(sv.volume, MagicMock,
+        self.assertIsInstance(sv.volume, Mock,
                               'Should be our volume mock')
 
     def test_class_properties(self):
-        sv = self.StatefulVolume('xdf', 'test')
+        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
 
         self.stubber.assert_no_pending_responses()
 
-        self.assertEqual(sv.deviceName, 'xdf', 'Should set the deviceName')
+        self.assertEqual(sv.device_name, 'xdf', 'Should set the deviceName')
         self.assertEqual(
             sv.ready, False, 'Should set the volume to not ready.')
         self.assertEqual(sv.status, 'Unknown', 'Should set the status')
         self.assertEqual(sv.volume, None, 'Should set the tag name')
         self.assertEqual(sv.tag_name, 'test', 'Should set the tag name')
+
+    def test_volume_tagging(self):
+        response = self.default_response.copy()
+        response['Volumes'] = []
+
+        self.stubber.add_response(
+            'describe_volumes', response, {'Filters': [
+                {
+                    'Name': f'tag:{self.tag_name}',
+                    'Values': [self.device_name]
+                }
+            ]})
+
+        self.stubber.add_response(
+            'describe_volumes', self.default_response, {'Filters': [
+                {
+                    'Name': 'attachment.instance-id',
+                    'Values': [self.instance_id]
+                }
+            ]})
+
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+
+        sv.get_status()
+
+        sv.tag_volume()
+
+        self.actual_volume.create_tags.assert_called_with(
+            Tags=[{'Key': self.tag_name, 'Value': self.device_name}])
 
 
 if __name__ == '__main__':
