@@ -35,8 +35,5 @@ def main(args):
     sys.exit()
 
 
-if __name__ == "__main__":
-    """ This is executed when run from the command line """
-
-    args = parse_args(sys.argv[1:], __version__)
-    main(args)
+args = parse_args(sys.argv[1:], __version__)
+main(args)
