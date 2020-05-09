@@ -13,12 +13,9 @@ from sebs.ec2 import Instance
 
 
 def main(args):
-    """ Main entry point of the app """
-    print("hello world")
-    print(args)
 
     # Get a handler for the current EC2 instance
-    server = Instance()
+    server = Instance(args.name)
 
     # Add the requested Stateful Devices to the server
     for device in args.backup:
