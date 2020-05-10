@@ -37,7 +37,7 @@ class TestStatefulVolume(unittest.TestCase):
 
         self.instance_id = 'i-1234567890abcdef0'
         self.tag_name = 'sebs'
-        self.device_name = 'xdf'
+        self.device_name = '/dev/xdf'
 
         self.default_response = {
             'Volumes': [
@@ -94,10 +94,17 @@ class TestStatefulVolume(unittest.TestCase):
                 {
                     'Name': 'attachment.instance-id',
                     'Values': [self.instance_id]
+                },
+                {
+                    'Name': 'attachment.device',
+                    'Values': [
+                        self.device_name,
+                    ]
                 }
             ]})
 
-        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
 
         sv.get_status()
 
@@ -114,7 +121,8 @@ class TestStatefulVolume(unittest.TestCase):
         self.stubber.add_response(
             'describe_volumes', response, self.default_params)
 
-        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
 
         sv.get_status()
 
@@ -127,7 +135,8 @@ class TestStatefulVolume(unittest.TestCase):
         self.stubber.add_response(
             'describe_volumes', self.default_response, self.default_params)
 
-        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
 
         sv.get_status()
 
@@ -138,16 +147,18 @@ class TestStatefulVolume(unittest.TestCase):
                               'Should be our volume mock')
 
     def test_class_properties(self):
-        sv = self.StatefulVolume(self.instance_id, 'xdf', 'test')
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
 
         self.stubber.assert_no_pending_responses()
 
-        self.assertEqual(sv.device_name, 'xdf', 'Should set the deviceName')
+        self.assertEqual(sv.device_name, self.device_name,
+                         'Should set the deviceName')
         self.assertEqual(
             sv.ready, False, 'Should set the volume to not ready.')
         self.assertEqual(sv.status, 'Unknown', 'Should set the status')
         self.assertEqual(sv.volume, None, 'Should set the tag name')
-        self.assertEqual(sv.tag_name, 'test', 'Should set the tag name')
+        self.assertEqual(sv.tag_name, self.tag_name, 'Should set the tag name')
 
     def test_volume_tagging(self):
         response = self.default_response.copy()
@@ -166,6 +177,12 @@ class TestStatefulVolume(unittest.TestCase):
                 {
                     'Name': 'attachment.instance-id',
                     'Values': [self.instance_id]
+                },
+                {
+                    'Name': 'attachment.device',
+                    'Values': [
+                        self.device_name,
+                    ]
                 }
             ]})
 

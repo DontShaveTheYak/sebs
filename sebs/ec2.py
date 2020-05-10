@@ -92,12 +92,18 @@ class StatefulVolume:
                             self.instance_id,
                         ]
                     },
+                    {
+                        'Name': 'attachment.device',
+                        'Values': [
+                            self.device_name,
+                        ]
+                    }
                 ]
             )
 
             if not response['Volumes']:
                 print(
-                    f"Could not find {self.device_name} for {self.instance_id}")
+                    f"Could not find EBS volume mounted at {self.device_name} for {self.instance_id}")
                 sys.exit(2)
 
             volumeId = response['Volumes'][0]['VolumeId']
