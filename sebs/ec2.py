@@ -194,6 +194,9 @@ class StatefulVolume:
             ]
         )
 
+        # This should be the existing volume thats in the wrong AZ
+        prev_volume = self.volume
+
         self.volume = self.ec2_resource.Volume(response['VolumeId'])
 
         print(f'Waiting on volume {self.volume.volume_id} to be avaliable.')
@@ -201,7 +204,8 @@ class StatefulVolume:
 
         waiter.wait(VolumeIds=[self.volume.volume_id])
 
-        # Cleanup this temporary snapshot
+        # Cleanup this temporary resources
+        prev_volume.delete()
         snapshot.delete()
 
     def attach(self):
