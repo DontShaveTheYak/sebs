@@ -9,6 +9,11 @@ from unittest.mock import patch, MagicMock, Mock
 class TestStatefulVolume(unittest.TestCase):
 
     def setUp(self):
+
+        self.instance_id = 'i-1234567890abcdef0'
+        self.tag_name = 'sebs'
+        self.device_name = '/dev/xdf'
+
         # Setup our ec2 client stubb
         ec2 = botocore.session.get_session().create_client('ec2')
         self.stub_client = ec2
@@ -20,7 +25,8 @@ class TestStatefulVolume(unittest.TestCase):
         self.boto3.client = self.mock_client
 
         # Setup resource and volume mocks
-        self.actual_volume = Mock(name='actual_volume')
+        self.actual_volume = Mock(
+            attachments=[{'InstanceId': ''}], name='actual_volume')
         self.mock_volume = MagicMock(
             name='volume_mock', return_value=self.actual_volume)
         self.mock_volume_class = MagicMock(
@@ -34,10 +40,6 @@ class TestStatefulVolume(unittest.TestCase):
             'boto3': self.boto3,
             'ec2_metadata': MagicMock()
         }
-
-        self.instance_id = 'i-1234567890abcdef0'
-        self.tag_name = 'sebs'
-        self.device_name = '/dev/xdf'
 
         self.default_response = {
             'Volumes': [
@@ -109,7 +111,7 @@ class TestStatefulVolume(unittest.TestCase):
         sv.get_status()
 
         self.stubber.assert_no_pending_responses()
-        self.assertEqual(sv.status, 'Mounted',
+        self.assertEqual(sv.status, 'Attached',
                          'Volume should be mounted already.')
         self.assertIsInstance(sv.volume, Mock,
                               'Should have a boto3 Volume resource')

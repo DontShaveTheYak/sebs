@@ -41,7 +41,8 @@ class Instance:
 
         sv.get_status()
 
-        self.backup.append(sv)
+        if sv.status != 'Failed':
+            self.backup.append(sv)
 
     def tag_stateful_volumes(self):
 
@@ -111,7 +112,7 @@ class StatefulVolume:
             volumeId = response['Volumes'][0]['VolumeId']
 
             print(f'No pre-existing volume for {self.device_name}')
-            self.status = 'Mounted'
+            self.status = 'Attached'
             self.volume = self.ec2_resource.Volume(volumeId)
 
             self.tag_volume()
@@ -122,10 +123,16 @@ class StatefulVolume:
             self.status = 'Duplicate'
             self.ready = False
         else:
-            volumeId = response['Volumes'][0]['VolumeId']
+            volume = response['Volumes'][0]
+            volumeId = volume['VolumeId']
             print(f'Found existing Volume {volumeId} for {self.device_name}')
             self.status = 'Not Attached'
             self.volume = self.ec2_resource.Volume(volumeId)
+
+            print(self.volume)
+            for attachment in self.volume.attachments:
+                if attachment['InstanceId'] == self.instance_id:
+                    self.status = 'Attached'
 
         return self.status
 
@@ -228,7 +235,7 @@ class StatefulVolume:
             prev_volume = self.ec2_resource.Volume(
                 response['Volumes'][0]['VolumeId'])
 
-            pre_volume.detach_from_instance(
+            prev_volume.detach_from_instance(
                 Device=self.device_name,
                 InstanceId=self.instance_id
             )
@@ -248,4 +255,4 @@ class StatefulVolume:
 
         waiter.wait(self.volume.volume_id)
 
-        self.status = 'Mounted'
+        self.status = 'Attached'
