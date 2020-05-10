@@ -175,10 +175,11 @@ class StatefulVolume:
         # Not sure but we probably have to wait until its completed
         snapshot.wait_until_completed()
 
+        # If we fail to create the volume we need to remove this temp snapshot
+
         response = self.ec2_client.create_volume(
             AvailabilityZone=target_az,
             Encrypted=False if not snapshot.encrypted else snapshot.encrypted,
-            Iops='' if not self.volume.iops else self.volume.iops,
             KmsKeyId='' if not self.volume.kms_key_id else self.volume.kms_key_id,
             SnapshotId=snapshot.snapshot_id,
             VolumeType='' if not self.volume.volume_type else self.volume.volume_type,
