@@ -177,13 +177,12 @@ class StatefulVolume:
 
         response = self.ec2_client.create_volume(
             AvailabilityZone=target_az,
-            Encrypted=snapshot.encrypted,
-            Iops=self.volume.iops,
-            KmsKeyId=self.volume.kms_key_id,
-            OutpostArn=self.volume.outpost_arn,
-            Size=self.volume.size,
+            Encrypted='' if not snapshot.encrypted else snapshot.encrypted,
+            Iops='' if not self.volume.iops else self.volume.iops,
+            KmsKeyId='' if not self.volume.kms_key_id else self.volume.kms_key_id,
+            OutpostArn='' if not self.volume.outpost_arn else self.volume.outpost_arn,
             SnapshotId=snapshot.snapshot_id,
-            VolumeType=self.volume.volume_type,
+            VolumeType='' if not self.volume.volume_type else self.volume.volume_type,
             TagSpecifications=[
                 {
                     'ResourceType': 'volume',
