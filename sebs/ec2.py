@@ -204,7 +204,7 @@ class StatefulVolume:
 
         waiter = self.ec2_client.get_waiter('volume_available')
 
-        waiter.wait(self.volume.volume_id)
+        waiter.wait(VolumeIds=[self.volume.volume_id])
 
     def attach(self):
         if self.status != 'Not Attached':
@@ -240,7 +240,7 @@ class StatefulVolume:
 
             waiter = self.ec2_client.get_waiter('volume_available')
 
-            waiter.wait(prev_volume.volume_id)
+            waiter.wait(VolumeIds=[prev_volume.volume_id])
 
             prev_volume.delete()
 
@@ -251,6 +251,6 @@ class StatefulVolume:
 
         waiter = self.ec2_client.get_waiter('volume_in_use')
 
-        waiter.wait(self.volume.volume_id)
+        waiter.wait(VolumeIds=[self.volume.volume_id])
 
         self.status = 'Attached'
