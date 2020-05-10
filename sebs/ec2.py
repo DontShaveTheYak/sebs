@@ -41,19 +41,20 @@ class Instance:
 
         sv.get_status()
 
-        if sv.status != 'Failed':
-            self.backup.append(sv)
+        self.backup.append(sv)
 
     def tag_stateful_volumes(self):
 
         for sv in self.backup:
-            sv.tag_volume()
+            if sv.status not in ['Duplicate', 'Missing']:
+                sv.tag_volume()
 
     def attach_stateful_volumes(self):
 
         for sv in self.backup:
-            sv.copy(ec2_metadata.availability_zone)
-            sv.attach()
+            if sv.status == 'Not Attached':
+                sv.copy(ec2_metadata.availability_zone)
+                sv.attach()
 
 
 class StatefulVolume:
@@ -106,7 +107,6 @@ class StatefulVolume:
                 print(
                     f"Could not find EBS volume mounted at {self.device_name} for {self.instance_id}")
                 self.status = 'Missing'
-                self.ready = False
                 return self.status
 
             volumeId = response['Volumes'][0]['VolumeId']
@@ -121,7 +121,6 @@ class StatefulVolume:
             print(
                 f"Found duplicate EBS volumes with tag {self.tag_name} for device {self.device_name}")
             self.status = 'Duplicate'
-            self.ready = False
         else:
             volume = response['Volumes'][0]
             volumeId = volume['VolumeId']

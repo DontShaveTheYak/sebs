@@ -29,6 +29,9 @@ def main(args):
     # Tag the Stateful Volumes so they can be found on next boot
     server.tag_stateful_volumes()
 
+    for sv in server.backup:
+        print(f"{sv.device_name} is {'Ready' if sv.ready else 'not Ready'} ")
+
     # I think we done?
     print('All done')
     sys.exit()
