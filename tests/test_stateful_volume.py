@@ -109,9 +109,11 @@ class TestStatefulVolume(unittest.TestCase):
         sv.get_status()
 
         self.stubber.assert_no_pending_responses()
-        self.assertEqual(sv.status, 'New', 'Should be a new Volume')
+        self.assertEqual(sv.status, 'Mounted',
+                         'Volume should be mounted already.')
         self.assertIsInstance(sv.volume, Mock,
-                              'Should be our volume mock')
+                              'Should have a boto3 Volume resource')
+        self.assertEqual(sv.ready, True, 'Should be ready.')
 
     def test_duplicate_volumes(self):
 
@@ -127,8 +129,9 @@ class TestStatefulVolume(unittest.TestCase):
         sv.get_status()
 
         self.stubber.assert_no_pending_responses()
-        self.assertEqual(sv.status, 'Failed',
+        self.assertEqual(sv.status, 'Duplicate',
                          'Should be a duplicate volume')
+        self.assertEqual(sv.ready, False, 'Volume should not be Ready')
 
     def test_existing_volume(self):
 
@@ -145,6 +148,7 @@ class TestStatefulVolume(unittest.TestCase):
                          'Should find an existing volume')
         self.assertIsInstance(sv.volume, Mock,
                               'Should be our volume mock')
+        self.assertEqual(sv.ready, False, 'Volume should not be Ready')
 
     def test_class_properties(self):
         sv = self.StatefulVolume(

@@ -104,19 +104,23 @@ class StatefulVolume:
             if not response['Volumes']:
                 print(
                     f"Could not find EBS volume mounted at {self.device_name} for {self.instance_id}")
-                self.status = 'Failed'
+                self.status = 'Missing'
+                self.ready = False
                 return self.status
 
             volumeId = response['Volumes'][0]['VolumeId']
 
             print(f'No pre-existing volume for {self.device_name}')
-
+            self.status = 'Mounted'
             self.volume = self.ec2_resource.Volume(volumeId)
+
+            self.tag_volume()
 
         elif len(response['Volumes']) != 1:
             print(
                 f"Found duplicate EBS volumes with tag {self.tag_name} for device {self.device_name}")
-            self.status = 'Failed'
+            self.status = 'Duplicate'
+            self.ready = False
         else:
             volumeId = response['Volumes'][0]['VolumeId']
             print(f'Found existing Volume {volumeId} for {self.device_name}')
@@ -126,9 +130,8 @@ class StatefulVolume:
         return self.status
 
     def tag_volume(self):
-        print(f'Tagging {self.volume.volume_id} with control tag.')
-        if self.status != 'New':
-            return self.status
+        print(
+            f'Tagging {self.volume.volume_id} with control tag {self.tag_name}.')
 
         self.volume.create_tags(Tags=[
             {
@@ -138,8 +141,10 @@ class StatefulVolume:
         ]
         )
 
+        self.ready = True
+
     def copy(self, target_az):
-        if self.status == 'New':
+        if self.status != 'Not Attached':
             return self.status
         # If the current volume az is in the target AZ do nothing
         if target_az == self.volume.availability_zone:
@@ -197,7 +202,7 @@ class StatefulVolume:
         waiter.wait(self.volume.volume_id)
 
     def attach(self):
-        if self.status == 'New':
+        if self.status != 'Not Attached':
             return self.status
 
         print(f'Attaching {self.volume.volume_id} to {self.instance_id}')
@@ -242,3 +247,5 @@ class StatefulVolume:
         waiter = self.ec2_client.get_waiter('volume_in_use')
 
         waiter.wait(self.volume.volume_id)
+
+        self.status = 'Mounted'
