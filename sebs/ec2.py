@@ -129,7 +129,6 @@ class StatefulVolume:
             self.status = 'Not Attached'
             self.volume = self.ec2_resource.Volume(volumeId)
 
-            print(self.volume)
             for attachment in self.volume.attachments:
                 if attachment['InstanceId'] == self.instance_id:
                     self.status = 'Attached'
