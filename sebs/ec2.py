@@ -194,17 +194,15 @@ class StatefulVolume:
             ]
         )
 
-        print(response)
-
-        # Cleanup this temporary snapshot
-        snapshot.delete()
-
         self.volume = self.ec2_resource.Volume(response['VolumeId'])
 
         print(f'Waiting on volume {self.volume.volume_id} to be avaliable.')
         waiter = self.ec2_client.get_waiter('volume_available')
 
         waiter.wait(VolumeIds=[self.volume.volume_id])
+
+        # Cleanup this temporary snapshot
+        snapshot.delete()
 
     def attach(self):
         if self.status != 'Not Attached':
