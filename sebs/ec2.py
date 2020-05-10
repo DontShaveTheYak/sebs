@@ -231,6 +231,9 @@ class StatefulVolume:
             prev_volume = self.ec2_resource.Volume(
                 response['Volumes'][0]['VolumeId'])
 
+            print(
+                f'Detaching curent Volume {prev_volume.volume_id} attached to {self.instance_id}')
+
             prev_volume.detach_from_instance(
                 Device=self.device_name,
                 InstanceId=self.instance_id
@@ -240,7 +243,11 @@ class StatefulVolume:
 
             waiter.wait(VolumeIds=[prev_volume.volume_id])
 
+            print('Waiting on detachment and then deleting.')
+
             prev_volume.delete()
+
+        print(f'Attaching sebs {self.volume.volume_id} to {self.instance_id}')
 
         self.volume.attach_to_instance(
             Device=self.device_name,
