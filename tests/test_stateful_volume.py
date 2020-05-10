@@ -127,7 +127,7 @@ class TestStatefulVolume(unittest.TestCase):
         sv.get_status()
 
         self.stubber.assert_no_pending_responses()
-        self.assertEqual(sv.status, 'Duplicate',
+        self.assertEqual(sv.status, 'Failed',
                          'Should be a duplicate volume')
 
     def test_existing_volume(self):

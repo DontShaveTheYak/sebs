@@ -104,25 +104,25 @@ class StatefulVolume:
             if not response['Volumes']:
                 print(
                     f"Could not find EBS volume mounted at {self.device_name} for {self.instance_id}")
-                sys.exit(2)
+                self.status = 'Failed'
+                return self.status
 
             volumeId = response['Volumes'][0]['VolumeId']
+
+            print(f'No pre-existing volume for {self.device_name}')
 
             self.volume = self.ec2_resource.Volume(volumeId)
 
         elif len(response['Volumes']) != 1:
-            # too many volumes found
-            self.status = 'Duplicate'
-            # Might have to do other stuffs
+            print(
+                f"Found duplicate EBS volumes with tag {self.tag_name} for device {self.device_name}")
+            self.status = 'Failed'
         else:
-            # Previous backup volume found
             volumeId = response['Volumes'][0]['VolumeId']
+            print(f'Found existing Volume {volumeId} for {self.device_name}')
             self.status = 'Not Attached'
-
             self.volume = self.ec2_resource.Volume(volumeId)
-            # Might have to do other stuffs
 
-        print(f'{self.device_name} is {self.status}')
         return self.status
 
     def tag_volume(self):
