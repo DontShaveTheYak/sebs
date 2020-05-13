@@ -153,7 +153,7 @@ class StatefulVolume:
             return self.status
         # If the current volume az is in the target AZ do nothing
         if target_az == self.volume.availability_zone:
-            return
+            return self.status
 
         print(f'Copying {self.volume.volume_id} to {target_az}')
 
@@ -207,6 +207,8 @@ class StatefulVolume:
         # Cleanup this temporary resources
         prev_volume.delete()
         snapshot.delete()
+
+        return self.status
 
     def attach(self):
         if self.status != 'Not Attached':
