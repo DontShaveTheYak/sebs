@@ -33,16 +33,21 @@ class TestStatefulVolume(unittest.TestCase):
         self.boto3.resource = self.mock_resource
 
         # Setup resource and volume mocks
-        self.actual_volume = Mock(
-            attachments=[{'InstanceId': ''}], name='actual_volume')
+        self.mock_snapshot = MagicMock(
+            name='snapshot_mock', snapshot_id='sn-12345')
+        self.actual_volume = Mock(name='actual_volume',
+                                  attachments=[{'InstanceId': ''}], volume_type='GP2', volume_id='vol-1111')
+
+        self.actual_volume.create_snapshot = Mock(
+            return_value=self.mock_snapshot)
         self.mock_volume = MagicMock(
             name='volume_mock', return_value=self.actual_volume)
         self.mock_volume_class = MagicMock(
             name='volume_class_mock', return_value=self.mock_volume)
         self.mock_volume_class.Volume = self.mock_volume
-        self.mock_resource = MagicMock(
+
+        self.boto3.resource = MagicMock(
             name='resource_mock', return_value=self.mock_volume_class)
-        self.boto3.resource = self.mock_resource
 
         modules = {
             'boto3': self.boto3,
@@ -201,6 +206,8 @@ class TestStatefulVolume(unittest.TestCase):
 
     def test_status_not_attached(self):
 
+        self.mock_volume
+
         self.stub_client.add_response(
             'describe_volumes', self.default_response, self.default_params)
 
@@ -212,8 +219,8 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.assert_no_pending_responses()
         self.assertEqual(sv.status, 'Not Attached',
                          'Should find an existing volume')
-        self.assertIsInstance(sv.volume, Mock,
-                              'Should be our volume mock')
+        self.assertEqual(sv.volume, self.actual_volume,
+                         'Should be our volume mock')
         self.assertEqual(sv.ready, False, 'Volume should not be Ready')
 
     def test_volume_tagging(self):
@@ -251,6 +258,63 @@ class TestStatefulVolume(unittest.TestCase):
 
         self.actual_volume.create_tags.assert_called_with(
             Tags=[{'Key': self.tag_name, 'Value': self.device_name}])
+
+    def test_copy_new(self):
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+        sv.status = 'New'
+
+        response = sv.copy('fakeAZ')
+
+        self.assertEqual(response, sv.status,
+                         "Should do nothing if status in not 'Not Attached'.")
+
+    def test_copy_same_az(self):
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+
+        self.actual_volume.availability_zone = 'fakeAZ'
+        sv.status = 'Not Attached'
+        sv.volume = self.actual_volume
+
+        response = sv.copy('fakeAZ')
+
+        self.assertEqual(response, sv.status,
+                         "Should not change the status if in the same AZ.")
+        self.actual_volume.copy.assert_not_called()
+
+    def test_copy_different_az(self):
+
+        self.stub_client.add_response(
+            'create_volume', {'VolumeId': 'vol-2222',
+                              'AvailabilityZone': 'newAZ',
+                              'Encrypted': True,
+                              'Size': 50,
+                              'SnapshotId': 'sn-2323',
+                              'VolumeType': 'gp2'}, {'AvailabilityZone': 'newAZ',
+                                                     'SnapshotId': ANY,
+                                                     'VolumeType': ANY,
+                                                     'TagSpecifications': ANY})
+
+        # Volume ID's dont match here because we are not creating a second mock volume correctly
+        self.stub_client.add_response('describe_volumes', {'Volumes': [
+                                      {'VolumeId': 'vol-2222', 'State': 'available'}]}, {'VolumeIds': ['vol-1111']})
+
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+
+        self.actual_volume.availability_zone = 'fakeAZ'
+        sv.status = 'Not Attached'
+        sv.volume = self.actual_volume
+
+        response = sv.copy('newAZ')
+
+        # Last test we need here is that we are actually creating a second volume
+        self.assertEqual(response, sv.status,
+                         'Should not change the status after a copy')
+        self.assertFalse(sv.ready, 'We should not be ready after copying.')
+        self.actual_volume.delete.assert_called_once()
+        self.mock_snapshot.delete.assert_called_once()
 
 
 if __name__ == '__main__':
