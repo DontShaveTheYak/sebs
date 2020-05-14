@@ -268,7 +268,7 @@ class TestStatefulVolume(unittest.TestCase):
 
         response = sv.copy('fakeAZ')
 
-        self.assertEqual(response, sv.status,
+        self.assertEqual(response, 'New',
                          "Should do nothing if status in not 'Not Attached'.")
 
     def test_copy_same_az(self):
@@ -281,7 +281,7 @@ class TestStatefulVolume(unittest.TestCase):
 
         response = sv.copy('fakeAZ')
 
-        self.assertEqual(response, sv.status,
+        self.assertEqual(response, 'Not Attached',
                          "Should not change the status if in the same AZ.")
         self.first_volume.copy.assert_not_called()
 
@@ -311,13 +311,60 @@ class TestStatefulVolume(unittest.TestCase):
         response = sv.copy('newAZ')
 
         # Last test we need here is that we are actually creating a second volume
-        self.assertEqual(response, sv.status,
+        self.assertEqual(response, 'Not Attached',
                          'Should not change the status after a copy')
         self.assertFalse(sv.ready, 'We should not be ready after copying.')
         self.assertEqual(sv.volume, self.second_volume,
                          'Should have our second volume.')
         self.first_volume.delete.assert_called_once()
         self.mock_snapshot.delete.assert_called_once()
+
+    def test_attach_new(self):
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+        sv.status = 'New'
+
+        response = sv.attach()
+
+        self.assertEqual(response, 'New',
+                         "Should do nothing if status in not 'Not Attached'.")
+
+    def test_attach(self):
+
+        self.stub_client.add_response('describe_volumes', {'Volumes': [
+                                      {'VolumeId': 'vol-1111', 'State': 'in-use'}]}, {'Filters': [
+                                          {
+                                              'Name': 'attachment.instance-id',
+                                              'Values': [
+                                                  self.instance_id,
+                                              ]
+                                          },
+                                          {
+                                              'Name': 'attachment.device',
+                                              'Values': [
+                                                  self.device_name,
+                                              ]
+                                          },
+                                      ]})
+
+        self.stub_client.add_response('describe_volumes', {'Volumes': [
+                                      {'VolumeId': 'vol-2222', 'State': 'available'}]}, {'VolumeIds': ['vol-1111']})
+
+        self.stub_client.add_response('describe_volumes', {'Volumes': [
+                                      {'VolumeId': 'vol-2222', 'State': 'in-use'}]}, {'VolumeIds': ['vol-2222']})
+
+        sv = self.StatefulVolume(
+            self.instance_id, self.device_name, self.tag_name)
+        sv.status = 'Not Attached'
+        sv.volume = self.second_volume
+
+        response = sv.attach()
+
+        self.assertEqual(response, 'Attached',
+                         'Should be Attached to the instance.')
+        self.assertFalse(sv.ready, 'Should not be Ready')
+        # We shoud delete the previous volume
+        self.first_volume.delete.assert_called_once()
 
 
 if __name__ == '__main__':

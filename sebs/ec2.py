@@ -265,3 +265,5 @@ class StatefulVolume:
         waiter.wait(VolumeIds=[self.volume.volume_id])
 
         self.status = 'Attached'
+
+        return self.status
