@@ -6,11 +6,14 @@ import botocore.session
 from botocore.stub import Stubber, ANY
 from unittest.mock import patch, MagicMock, Mock
 
+if('sebs.ec2' in sys.modules):
+    # We need to un-import it if imported already
+    del sys.modules["sebs.ec2"]
+
 
 class TestStatefulVolume(unittest.TestCase):
 
     def setUp(self):
-
         self.instance_id = 'i-1234567890abcdef0'
         self.tag_name = 'sebs'
         self.device_name = '/dev/xdf'
