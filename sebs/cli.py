@@ -1,7 +1,9 @@
+import sys
 import argparse
 
 
 def parse_args(args, ver):
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-b', '--backup', action='append',
@@ -24,5 +26,9 @@ def parse_args(args, ver):
         "--version",
         action="version",
         version="%(prog)s (version {version})".format(version=ver))
+
+    if len(args) == 0:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
 
     return parser.parse_args(args)
