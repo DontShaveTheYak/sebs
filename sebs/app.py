@@ -8,7 +8,6 @@ __version__ = "0.1.0"
 __license__ = "GPLv3"
 
 import sys
-from sebs.cli import parse_args
 from sebs.ec2 import Instance
 
 
@@ -35,8 +34,3 @@ def main(args):
     # I think we done?
     print('All done')
     sys.exit()
-
-
-if __name__ == "__main__":
-    args = parse_args(sys.argv[1:], __version__)
-    main(args)
