@@ -1,6 +1,6 @@
 import unittest
 from sebs.ec2 import Instance
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, call, PropertyMock
 
 
 class TestInstance(unittest.TestCase):
@@ -51,7 +51,6 @@ class TestInstance(unittest.TestCase):
     def test_add_multiple_devices(self, mock_method, mock_volume_class):
         mock_method.return_value = self.mock_instance
         mock_volume = MagicMock(name='mock_volume_1')
-        mock_volume2 = MagicMock(name='mock_volume_1')
         mock_volume_class.return_value = mock_volume
 
         server = Instance(self.default_tag)
@@ -70,6 +69,41 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(len(server.backup), 2, 'Should have two volumes.')
         self.assertEqual(mock_volume.get_status.call_count, 2,
                          'Should have called get_status twice')
+
+    @patch('sebs.ec2.Instance.get_instance')
+    def test_tag_volumes(self, mock_method):
+        server = Instance(self.default_tag)
+        mock_volume = MagicMock(name='mock_volume_1', status='Not Attached')
+        mock_volume2 = MagicMock(name='mock_volume_2', status='Missing')
+
+        server = Instance(self.default_tag)
+        server.backup = [mock_volume, mock_volume2]
+        server.tag_stateful_volumes()
+
+        # Should tag one volume but not the other.
+        mock_volume.tag_volume.assert_called_once()
+        mock_volume2.tag_volume.assert_not_called()
+
+    @patch('sebs.ec2.ec2_metadata')
+    @patch('sebs.ec2.Instance.get_instance')
+    def test_attach_volumes(self, mock_method, mock_metadata):
+
+        p = PropertyMock(return_value='AZ2')
+        type(mock_metadata).availability_zone = p
+
+        mock_volume = MagicMock(name='mock_volume_1', status='Not Attached')
+        mock_volume2 = MagicMock(name='mock_volume_2', status='Missing')
+
+        server = Instance(self.default_tag)
+        server.backup = [mock_volume, mock_volume2]
+        server.attach_stateful_volumes()
+
+        # Should Attach one volume but not the other.
+        mock_volume.copy.assert_called_once_with('AZ2')
+        mock_volume.attach.assert_called_once()
+
+        mock_volume2.copy.assert_not_called()
+        mock_volume2.attach.assert_not_called()
 
 
 if __name__ == '__main__':
