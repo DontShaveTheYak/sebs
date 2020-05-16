@@ -1,19 +1,23 @@
 import unittest
+from io import StringIO
+from unittest.mock import patch
 from sebs.cli import parse_args
 
 
 class TestArugmentParsing(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     def test_version(self):
 
-        try:
-            version = "2.1.0"
-            parse_args(['--version'], version)
-        except:
-            pass
+        version = "2.1.0"
+        with patch('sys.stdout', new=StringIO()) as fakeOutput:
+            try:
+                parse_args(['--version'], version)
+            except:
+                pass
+
+        output = fakeOutput.getvalue().strip()
+        self.assertTrue(version in output,
+                        'Should display the proper version.')
 
     def test_single_backup(self):
         args = parse_args(['-b test'], '')
@@ -33,6 +37,11 @@ class TestArugmentParsing(unittest.TestCase):
         args = parse_args(['-b test1', '-b test2', '-n not-default'], '')
 
         self.assertEqual(args.name, ' not-default')
+
+    def test_verbose_level(self):
+        args = parse_args(['-b test1', '-b test2', '-vvv'], '')
+
+        self.assertEqual(args.verbose, 4)
 
 
 if __name__ == '__main__':
