@@ -70,7 +70,7 @@ class TestSebs(unittest.TestCase):
         )
 
         self.git_ref = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"]).strip().decode('ASCII')
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"]).strip().decode('ASCII')
 
         self.default_user_data = (
             "#!/bin/bash\n"
