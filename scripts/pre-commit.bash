@@ -13,9 +13,9 @@ echo
 echo "Linting changed python files"
 echo
 ./scripts/run-lint.bash
-echo
 # $? stores exit value of the last command
 if [ $? -ne 0 ]; then
+ echo
  echo "Please lint before commiting."
  exit 1
 fi

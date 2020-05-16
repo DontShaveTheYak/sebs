@@ -10,7 +10,7 @@ cd "${0%/*}/.."
 
 # let's fake failing test for now 
 echo -e "Running tests \n"
-coverage run --source sebs -m unittest discover
+coverage run --source sebs -m unittest discover -s tests/unit
 echo -e "\n"
 coverage report -m
 echo -e "\n"
