@@ -1,5 +1,6 @@
 import sys
 import boto3
+import logging
 import unittest
 import datetime
 import botocore.session
@@ -14,6 +15,9 @@ if('sebs.ec2' in sys.modules):
 class TestStatefulVolume(unittest.TestCase):
 
     def setUp(self):
+        # Disable logging for testing
+        logging.disable(logging.CRITICAL)
+
         self.instance_id = 'i-1234567890abcdef0'
         self.tag_name = 'sebs'
         self.device_name = '/dev/xdf'
@@ -100,6 +104,9 @@ class TestStatefulVolume(unittest.TestCase):
         self.StatefulVolume = StatefulVolume
 
     def tearDown(self):
+        # Turn logging back on
+        logging.disable(logging.NOTSET)
+
         self.module_patcher.stop()
         self.stub_client.deactivate()
 
@@ -194,7 +201,8 @@ class TestStatefulVolume(unittest.TestCase):
     def test_status_duplicate(self):
 
         response = self.default_response.copy()
-        response['Volumes'] = [{}, {}]
+        response['Volumes'] = [
+            {'VolumeId': 'vol-1111'}, {'VolumeId': 'vol-2222'}]
 
         self.stub_client.add_response(
             'describe_volumes', response, self.default_params)
