@@ -90,7 +90,7 @@ class TestSebs(unittest.TestCase):
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
 
-        control_tag = 'test-new-sebs'
+        control_tag = 'new-volume-sebs'
         server_config['UserData'] += (
             f'/usr/local/bin/sebs -b {device_name} -n {control_tag}\n'
             f'while [ ! -e {device_name} ] ; do sleep 1 ; done\n'
