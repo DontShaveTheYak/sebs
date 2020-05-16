@@ -1,9 +1,11 @@
 import json
 import boto3
+import time
+import subprocess
 
 
 def create_iam_resources():
-
+    print('Creating IAM resources for testing.')
     iam = boto3.resource('iam')
 
     assume_role_policy_doc = {'Version': '2012-10-17'}
@@ -48,15 +50,109 @@ def create_iam_resources():
     instance_profile.add_role(
         RoleName=iam_role.name
     )
-
+    print('Waiting on instance profile creation.')
     waiter = boto3.client('iam').get_waiter('instance_profile_exists')
 
     waiter.wait(
         InstanceProfileName=instance_profile.name
     )
 
+    print('IAM resources created.')
+
     return {
         'role': iam_role,
         'policy': iam_role_policy,
         'profile': instance_profile
     }
+
+
+def create_default_userdata():
+    git_ref = subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    ).strip().decode('ASCII')
+
+    return (
+        "#!/bin/bash\n"
+        "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n"
+        "yum install python3 git -y\n"
+        f"python3 -m pip install git+https://github.com/DontShaveTheYak/sebs.git@{git_ref}#egg=sebs-test --upgrade \n"
+    )
+
+
+def get_latest_ami():
+    ec2 = boto3.resource('ec2')
+    images = ec2.images.filter(Owners=['amazon'],
+                               Filters=[
+                                   {'Name': 'name',
+                                    'Values': ['amzn2*']
+                                    }])
+
+    for image in images:
+        ami = image
+        break
+
+    return ami.id
+
+
+def create_block_device(device_name):
+    return {
+        'DeviceName': device_name,
+        'Ebs': {
+            'DeleteOnTermination': True,
+            'VolumeSize': 10,
+            'VolumeType': 'gp2',
+            'Encrypted': False
+        }
+    }
+
+
+def create_instance(instance_config):
+    ec2 = boto3.resource('ec2')
+    server_list = ec2.create_instances(**instance_config)
+
+    instance = server_list[0]
+
+    return instance
+
+
+def get_volume_from_bdm(device_name, instance):
+    volume_id = ''
+    for device in instance.block_device_mappings:
+        if device['DeviceName'] == device_name:
+            volume_id = device['Ebs']['VolumeId']
+            break
+
+    return volume_id
+
+
+def get_ec2_waiter(name):
+    waiter = boto3.client('ec2').get_waiter(name)
+    return waiter
+
+
+def get_control_tag(control_tag, tags):
+    tag_name = ''
+    tag_value = ''
+    for tag in tags:
+        if tag['Key'] == control_tag:
+            tag_name = tag['Key']
+            tag_value = tag['Value']
+        break
+
+    return tag_name, tag_value
+
+
+def wait_for_volume_tag(volume):
+    i = 0
+    while True:
+        i += 1
+
+        volume.reload()
+
+        if volume.tags:
+            break
+
+        time.sleep(10)
+
+        if i > 14:
+            break
