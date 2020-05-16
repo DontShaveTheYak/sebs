@@ -1,7 +1,10 @@
 import sys
 import boto3
+import logging
 import requests
 from ec2_metadata import ec2_metadata
+
+log = logging.getLogger(__name__)
 
 
 class Instance:
@@ -11,16 +14,17 @@ class Instance:
         self.backup = []
 
     def get_instance(self):
-
+        log.info('Getting EC2 instance metadata.')
         try:
             instance_id = ec2_metadata.instance_id
+            log.info(f'Running on {instance_id}')
         except requests.exceptions.ConnectTimeout:
-            print(
+            log.error(
                 'Failled to get instance metadata, are you sure you are running on an EC2 instance?')
             sys.exit(1)
         except:
             t, v, _tb = sys.exc_info()
-            print("Unexpected error {}: {}".format(t, v))
+
             sys.exit(1)
 
         try:
@@ -30,13 +34,13 @@ class Instance:
             instance.load()
         except:
             t, v, _tb = sys.exc_info()
-            print("Unexpected error {}: {}".format(t, v))
+            log.error(f'Unexpected Error {t}: {v}')
             sys.exit(2)
 
         return instance
 
     def add_stateful_device(self, device_name):
-        print(f'Handling {device_name}')
+        log.info(f'Handling {device_name}')
         sv = StatefulVolume(self.instance.id, device_name, self.volume_tag)
 
         sv.get_status()
@@ -44,13 +48,13 @@ class Instance:
         self.backup.append(sv)
 
     def tag_stateful_volumes(self):
-
+        log.info(f'Tagging Volumes with control tag: {self.volume_tag}')
         for sv in self.backup:
             if sv.status not in ['Duplicate', 'Missing']:
                 sv.tag_volume()
 
     def attach_stateful_volumes(self):
-
+        log.info(f'Attaching Volumes to {self.instance.id}')
         for sv in self.backup:
             if sv.status == 'Not Attached':
                 sv.copy(ec2_metadata.availability_zone)
@@ -70,11 +74,11 @@ class StatefulVolume:
             'ec2', region_name=ec2_metadata.region)
 
     def get_status(self):
-
+        log.info(f'Checking for previous volume of {self.device_name}')
         response = self.ec2_client.describe_volumes(
             Filters=[
                 {
-                    'Name': 'tag:{}'.format(self.tag_name),
+                    'Name': f'tag:{self.tag_name}',
                     'Values': [
                         self.device_name,
                     ]
@@ -82,9 +86,13 @@ class StatefulVolume:
             ]
         )
 
+        log.debug(f'Response of tag search: {response}')
+
         if not response['Volumes']:
-            # No previous volume found
+            log.info(f'Did not find a previous volume for {self.device_name}')
             self.status = 'New'
+            log.info(
+                f'Checking if {self.device_name} is mounted to {self.instance_id}.')
 
             response = self.ec2_client.describe_volumes(
                 Filters=[
@@ -103,28 +111,36 @@ class StatefulVolume:
                 ]
             )
 
+            log.debug(f'Reponse of local attachment search: {response}')
+
             if not response['Volumes']:
-                print(
+                log.error(
                     f"Could not find EBS volume mounted at {self.device_name} for {self.instance_id}")
+
                 self.status = 'Missing'
                 return self.status
 
             volumeId = response['Volumes'][0]['VolumeId']
+            log.info(f'No pre-existing volume for {self.device_name}')
 
-            print(f'No pre-existing volume for {self.device_name}')
             self.status = 'Attached'
             self.volume = self.ec2_resource.Volume(volumeId)
-
+            log.info(f'Current volume is {volumeId} and is {self.status}')
             self.tag_volume()
 
         elif len(response['Volumes']) != 1:
-            print(
-                f"Found duplicate EBS volumes with tag {self.tag_name} for device {self.device_name}")
+            vol1 = response['Volumes'][0]['VolumeId']
+            vol2 = response['Volumes'][1]['VolumeId']
+            log.error(
+                f"Found duplicate EBS volumes with tag {self.tag_name}: {vol1} and {vol2}")
+
             self.status = 'Duplicate'
         else:
-            volume = response['Volumes'][0]
-            volumeId = volume['VolumeId']
-            print(f'Found existing Volume {volumeId} for {self.device_name}')
+            volumeId = response['Volumes'][0]['VolumeId']
+
+            log.info(
+                f'Found existing Volume {volumeId} for {self.device_name}')
+
             self.status = 'Not Attached'
             self.volume = self.ec2_resource.Volume(volumeId)
 
@@ -135,7 +151,7 @@ class StatefulVolume:
         return self.status
 
     def tag_volume(self):
-        print(
+        log.info(
             f'Tagging {self.volume.volume_id} with control tag {self.tag_name}.')
 
         self.volume.create_tags(Tags=[
@@ -143,8 +159,7 @@ class StatefulVolume:
                 'Key': self.tag_name,
                 'Value': self.device_name
             },
-        ]
-        )
+        ])
 
         self.ready = True
 
@@ -155,7 +170,7 @@ class StatefulVolume:
         if target_az == self.volume.availability_zone:
             return self.status
 
-        print(f'Copying {self.volume.volume_id} to {target_az}')
+        log.info(f'Copying {self.volume.volume_id} to {target_az}')
 
         snapshot = self.volume.create_snapshot(
             Description='Intermediate snapshot for SEBS.',
@@ -171,6 +186,8 @@ class StatefulVolume:
                 },
             ]
         )
+
+        log.debug(f'Snapshot: {snapshot.snapshot_id}')
 
         # Not sure but we probably have to wait until its completed
         snapshot.wait_until_completed()
@@ -194,12 +211,15 @@ class StatefulVolume:
             ]
         )
 
+        log.debug(f'New Volume: {response}')
+
         # This should be the existing volume thats in the wrong AZ
         prev_volume = self.volume
 
         self.volume = self.ec2_resource.Volume(response['VolumeId'])
 
-        print(f'Waiting on volume {self.volume.volume_id} to be avaliable.')
+        log.info(f'Waiting on volume {self.volume.volume_id} to be avaliable.')
+
         waiter = self.ec2_client.get_waiter('volume_available')
 
         waiter.wait(VolumeIds=[self.volume.volume_id])
@@ -214,7 +234,8 @@ class StatefulVolume:
         if self.status != 'Not Attached':
             return self.status
 
-        print(f'Attaching {self.volume.volume_id} to {self.instance_id}')
+        log.info(f'Attaching {self.volume.volume_id} to {self.instance_id}')
+
         # Need to find and delete any current volumes
         response = self.ec2_client.describe_volumes(
             Filters=[
@@ -233,11 +254,13 @@ class StatefulVolume:
             ]
         )
 
+        log.debug(f'Existing Volume: {response}')
+
         if response['Volumes']:
             prev_volume = self.ec2_resource.Volume(
                 response['Volumes'][0]['VolumeId'])
 
-            print(
+            log.info(
                 f'Detaching curent Volume {prev_volume.volume_id} attached to {self.instance_id}')
 
             prev_volume.detach_from_instance(
@@ -249,11 +272,12 @@ class StatefulVolume:
 
             waiter.wait(VolumeIds=[prev_volume.volume_id])
 
-            print('Waiting on detachment and then deleting.')
+            log.info('Waiting on detachment and then deleting.')
 
             prev_volume.delete()
 
-        print(f'Attaching sebs {self.volume.volume_id} to {self.instance_id}')
+        log.info(
+            f'Attaching sebs {self.volume.volume_id} to {self.instance_id}')
 
         self.volume.attach_to_instance(
             Device=self.device_name,

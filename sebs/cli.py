@@ -18,7 +18,7 @@ def parse_args(args, ver):
         "-v",
         "--verbose",
         action="count",
-        default=0,
+        default=1,
         help="Verbosity (-v, -vv, etc)")
 
     # Specify output of "--version"

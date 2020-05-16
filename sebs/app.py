@@ -8,15 +8,17 @@ __version__ = "0.1.0"
 __license__ = "GPLv3"
 
 import sys
+import logging
 from sebs.ec2 import Instance
+
+log = logging.getLogger(__name__)
 
 
 def main(args):
 
+    log.info(f'Starting...')
     # Get a handler for the current EC2 instance
     server = Instance(args.name)
-
-    print(f'Running on {server.instance.instance_id}')
 
     # Add the requested Stateful Devices to the server
     for device in args.backup:
@@ -29,8 +31,7 @@ def main(args):
     server.tag_stateful_volumes()
 
     for sv in server.backup:
-        print(f"{sv.device_name} is {'Ready' if sv.ready else 'not Ready'} ")
+        log.info(f"{sv.device_name} is {'Ready' if sv.ready else 'not Ready'}")
 
-    # I think we done?
-    print('All done')
+    log.info('Finished')
     sys.exit()

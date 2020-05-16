@@ -1,8 +1,21 @@
 #!/usr/bin/env python
 
 import sys
+import logging
 from sebs import app, cli
 
+module = sys.modules['__main__'].__file__
+log = logging.getLogger(module)
+
 if __name__ == "__main__":
-    args = cli.parse_args(sys.argv[1:], app.__version__)
-    sys.exit(app.main(args))
+    """Main program. Sets up logging and do some work."""
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
+                        format='%(name)s (%(levelname)s): %(message)s')
+    try:
+        args = cli.parse_args(sys.argv[1:], app.__version__)
+        log.setLevel(max(3 - args.verbose, 0) * 10)
+        sys.exit(app.main(args))
+    except KeyboardInterrupt:
+        log.error('Program interrupted!')
+    finally:
+        logging.shutdown()
