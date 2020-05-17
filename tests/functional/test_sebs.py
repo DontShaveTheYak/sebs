@@ -90,6 +90,8 @@ class TestSebs(unittest.TestCase):
             print(f'Deleting Instance Profile: {self.instance_profile}')
             self.instance_profile.delete()
 
+        print('Cleanup Finished')
+
     def test_new_volume(self):
 
         control_tag = 'new-volume-sebs'
@@ -183,8 +185,6 @@ class TestSebs(unittest.TestCase):
         existing_vol = aws_utils.create_existing_volume(
             control_tag, device_name, az[0])
 
-        print(f'Created Existing Volume {existing_vol.id}')
-
         server_config = self.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
@@ -208,8 +208,6 @@ class TestSebs(unittest.TestCase):
 
         default_vol = self.ec2.Volume(volume_id)
 
-        print(f'Default Volume {default_vol.id}')
-
         self.assertTrue(volume_id, 'Should have the default volume attached')
 
         waiter = aws_utils.get_ec2_waiter('volume_deleted')
@@ -221,8 +219,6 @@ class TestSebs(unittest.TestCase):
 
         new_vol = self.ec2.Volume(new_vol_id)
         self.volume_cleanup.append(new_vol)
-
-        print(f'Final Volume {new_vol.id}')
 
         self.assertNotEqual(new_vol.id, default_vol.id,
                             'Volume attached now should not be what we started with.')

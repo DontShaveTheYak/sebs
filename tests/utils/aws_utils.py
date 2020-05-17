@@ -172,8 +172,6 @@ def get_avaliable_az():
 
     az = [subnet.availability_zone for subnet in vpc.subnets.all()]
 
-    print(az)
-
     return az
 
 
