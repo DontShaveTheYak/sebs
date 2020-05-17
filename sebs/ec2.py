@@ -6,6 +6,10 @@ from ec2_metadata import ec2_metadata
 
 log = logging.getLogger('sebs')
 
+for name in logging.Logger.manager.loggerDict.keys():
+    if ('boto' in name) or ('urllib3' in name):
+        logging.getLogger(name).setLevel(logging.WARNING)
+
 
 class Instance:
     def __init__(self, volume_tag):
