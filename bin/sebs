@@ -4,8 +4,7 @@ import sys
 import logging
 from sebs import app, cli
 
-module = sys.modules['__main__'].__file__
-log = logging.getLogger(module)
+log = logging.getLogger('sebs')
 
 if __name__ == "__main__":
     """Main program. Sets up logging and do some work."""

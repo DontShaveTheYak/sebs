@@ -11,7 +11,7 @@ import sys
 import logging
 from sebs.ec2 import Instance
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('sebs')
 
 
 def main(args):

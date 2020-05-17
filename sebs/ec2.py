@@ -4,7 +4,7 @@ import logging
 import requests
 from ec2_metadata import ec2_metadata
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('sebs')
 
 
 class Instance:
