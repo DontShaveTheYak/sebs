@@ -1,10 +1,9 @@
 import json
 import boto3
-import time
 import unittest
 import warnings
-
 from tests.utils import aws_utils
+from botocore.exceptions import ClientError
 
 
 class TestSebs(unittest.TestCase):
@@ -61,9 +60,17 @@ class TestSebs(unittest.TestCase):
             print(f'Deleting {instance.id}')
             instance.terminate()
 
+            waiter = aws_utils.get_ec2_waiter('instance_terminated')
+
+            waiter.wait(InstanceIds=[instance.id])
+
         for volume in self.volume_cleanup:
             print(f'Deleting {volume.id}')
-            volume.delete()
+            try:
+                volume.delete()
+            except ClientError as e:
+                if e.response['Error']['Code'] != 'InvalidVolume.NotFound':
+                    raise e
 
         if self.instance_profile:
             print('Removing role from instance profile.')
@@ -85,12 +92,13 @@ class TestSebs(unittest.TestCase):
 
     def test_new_volume(self):
 
+        control_tag = 'new-volume-sebs'
         device_name = '/dev/xvdh'
+
         server_config = self.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
 
-        control_tag = 'new-volume-sebs'
         server_config['UserData'] += (
             f'/usr/local/bin/sebs -b {device_name} -n {control_tag}\n'
             f'while [ ! -e {device_name} ] ; do sleep 1 ; done\n'
@@ -112,12 +120,209 @@ class TestSebs(unittest.TestCase):
 
         volume = self.ec2.Volume(volume_id)
 
-        aws_utils.wait_for_volume_tag(volume)
+        volume_tagged = aws_utils.has_control_tag(
+            control_tag, device_name, volume)
 
-        tag_name, tag_value = aws_utils.get_control_tag(
-            control_tag, volume.tags)
+        self.assertTrue(volume_tagged, 'Volume should have our control tag.')
 
-        self.assertEqual(tag_name, control_tag,
-                         'Volume should be tagged with our control tag.')
-        self.assertEqual(tag_value, device_name,
-                         "Tag value should be it's device name.")
+    def test_new_volumes(self):
+
+        control_tag = 'new-volumes-sebs'
+        device1_name = '/dev/xvdh'
+        device2_name = '/dev/xvdm'
+
+        server_config = self.default_instance.copy()
+        server_config['BlockDeviceMappings'].append(
+            aws_utils.create_block_device(device1_name))
+        server_config['BlockDeviceMappings'].append(
+            aws_utils.create_block_device(device2_name))
+
+        server_config['UserData'] += (
+            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag}\n'
+            f'while [ ! -e {device1_name} ] ; do sleep 1 ; done\n'
+            f'while [ ! -e {device2_name} ] ; do sleep 1 ; done\n'
+        )
+
+        instance = aws_utils.create_instance(server_config)
+
+        self.instance_cleanup.append(instance)
+
+        instance.wait_until_running()
+        instance.reload()
+
+        volume1_id = aws_utils.get_volume_from_bdm(device1_name, instance)
+        volume2_id = aws_utils.get_volume_from_bdm(device2_name, instance)
+
+        self.assertTrue(
+            volume1_id, 'Should have the new volume attached')
+        self.assertTrue(
+            volume2_id, 'Should have the new volume attached')
+
+        waiter = aws_utils.get_ec2_waiter('volume_in_use')
+        waiter.wait(VolumeIds=[volume1_id])
+        waiter.wait(VolumeIds=[volume2_id])
+
+        volume1 = self.ec2.Volume(volume1_id)
+        volume2 = self.ec2.Volume(volume2_id)
+
+        volume1_tagged = aws_utils.has_control_tag(
+            control_tag, device1_name, volume1)
+        volume2_tagged = aws_utils.has_control_tag(
+            control_tag, device2_name, volume2)
+
+        self.assertTrue(volume1_tagged, 'Volume should have our control tag.')
+        self.assertTrue(volume2_tagged, 'Volume should have our control tag.')
+
+    def test_existing_volume(self):
+
+        control_tag = 'existing-volume-sebs'
+        device_name = '/dev/xvdh'
+
+        az = aws_utils.get_avaliable_az()
+
+        existing_vol = aws_utils.create_existing_volume(
+            control_tag, device_name, az[0])
+
+        print(f'Created Existing Volume {existing_vol.id}')
+
+        server_config = self.default_instance.copy()
+        server_config['BlockDeviceMappings'].append(
+            aws_utils.create_block_device(device_name))
+        server_config['Placement'] = {
+            'AvailabilityZone': az[1]
+        }
+
+        server_config['UserData'] += (
+            f'/usr/local/bin/sebs -b {device_name} -n {control_tag}\n'
+            f'while [ ! -e {device_name} ] ; do sleep 1 ; done\n'
+        )
+
+        instance = aws_utils.create_instance(server_config)
+
+        self.instance_cleanup.append(instance)
+
+        instance.wait_until_running()
+        instance.reload()
+
+        volume_id = aws_utils.get_volume_from_bdm(device_name, instance)
+
+        default_vol = self.ec2.Volume(volume_id)
+
+        print(f'Default Volume {default_vol.id}')
+
+        self.assertTrue(volume_id, 'Should have the default volume attached')
+
+        waiter = aws_utils.get_ec2_waiter('volume_deleted')
+        waiter.wait(VolumeIds=[volume_id])
+
+        instance.reload()
+
+        new_vol_id = aws_utils.get_volume_from_bdm(device_name, instance)
+
+        new_vol = self.ec2.Volume(new_vol_id)
+        self.volume_cleanup.append(new_vol)
+
+        print(f'Final Volume {new_vol.id}')
+
+        self.assertNotEqual(new_vol.id, default_vol.id,
+                            'Volume attached now should not be what we started with.')
+
+        volume_tagged = aws_utils.has_control_tag(
+            control_tag, device_name, new_vol)
+
+        waiter = aws_utils.get_ec2_waiter('volume_deleted')
+
+        waiter.wait(VolumeIds=[existing_vol.id, default_vol.id])
+
+        self.assertTrue(volume_tagged, 'Volume should have our control tag.')
+
+    def test_existing_volumes(self):
+
+        control_tag = 'existing-volumes-sebs'
+        device1_name = '/dev/xvdh'
+        device2_name = '/dev/xvdm'
+
+        az = aws_utils.get_avaliable_az()
+
+        existing_vol1 = aws_utils.create_existing_volume(
+            control_tag, device1_name, az[0])
+
+        existing_vol2 = aws_utils.create_existing_volume(
+            control_tag, device2_name, az[0])
+
+        self.volume_cleanup.extend([existing_vol1, existing_vol2])
+
+        server_config = self.default_instance.copy()
+        server_config['BlockDeviceMappings'].append(
+            aws_utils.create_block_device(device1_name))
+        server_config['BlockDeviceMappings'].append(
+            aws_utils.create_block_device(device2_name))
+        server_config['Placement'] = {
+            'AvailabilityZone': az[1]
+        }
+
+        server_config['UserData'] += (
+            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag}\n'
+            f'while [ ! -e {device1_name} ] ; do sleep 1 ; done\n'
+            f'while [ ! -e {device2_name} ] ; do sleep 1 ; done\n'
+        )
+
+        instance = aws_utils.create_instance(server_config)
+
+        self.instance_cleanup.append(instance)
+
+        instance.wait_until_running()
+        instance.reload()
+
+        default1_vol_id = aws_utils.get_volume_from_bdm(device1_name, instance)
+        default2_vol_id = aws_utils.get_volume_from_bdm(device2_name, instance)
+
+        default_vol1 = self.ec2.Volume(default1_vol_id)
+        default_vol2 = self.ec2.Volume(default2_vol_id)
+
+        self.volume_cleanup.extend([default_vol1, default_vol2])
+
+        self.assertTrue(default1_vol_id,
+                        'Should have the default volume attached')
+        self.assertTrue(default2_vol_id,
+                        'Should have the default volume attached')
+
+        waiter = aws_utils.get_ec2_waiter('volume_deleted')
+        waiter.wait(VolumeIds=[default1_vol_id])
+        waiter.wait(VolumeIds=[default2_vol_id])
+
+        instance.reload()
+
+        new1_vol_id = aws_utils.get_volume_from_bdm(device1_name, instance)
+        new2_vol_id = aws_utils.get_volume_from_bdm(device2_name, instance)
+
+        new_vol1 = self.ec2.Volume(new1_vol_id)
+        new_vol2 = self.ec2.Volume(new2_vol_id)
+
+        self.volume_cleanup.extend([new_vol1, new_vol2])
+
+        self.volume_cleanup.append(new_vol1)
+        self.volume_cleanup.append(new_vol2)
+
+        self.assertNotEqual(new_vol1.id, default_vol1.id,
+                            'Volume attached now should not be what we started with.')
+        self.assertNotEqual(new_vol2.id, default_vol2.id,
+                            'Volume attached now should not be what we started with.')
+
+        volume1_tagged = aws_utils.has_control_tag(
+            control_tag, device1_name, new_vol1)
+
+        volume2_tagged = aws_utils.has_control_tag(
+            control_tag, device2_name, new_vol2)
+
+        waiter = aws_utils.get_ec2_waiter('volume_deleted')
+
+        waiter.wait(VolumeIds=[
+                    existing_vol1.id,
+                    default_vol1.id,
+                    existing_vol2.id,
+                    default_vol2.id
+                    ])
+
+        self.assertTrue(volume1_tagged, 'Volume should have our control tag.')
+        self.assertTrue(volume2_tagged, 'Volume should have our control tag.')
