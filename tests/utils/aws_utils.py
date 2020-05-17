@@ -130,16 +130,14 @@ def get_ec2_waiter(name):
     return waiter
 
 
-def get_control_tag(control_tag, tags):
-    tag_name = ''
-    tag_value = ''
-    for tag in tags:
-        if tag['Key'] == control_tag:
-            tag_name = tag['Key']
-            tag_value = tag['Value']
-        break
+def has_control_tag(control_tag, device_name, volume):
 
-    return tag_name, tag_value
+    wait_for_volume_tag(volume)
+
+    tags = [tag for tag in volume.tags if tag['Key']
+            == control_tag and tag['Value'] == device_name]
+
+    return bool(tags)
 
 
 def wait_for_volume_tag(volume):
@@ -156,3 +154,52 @@ def wait_for_volume_tag(volume):
 
         if i > 14:
             break
+
+
+def get_default_vpc():
+    ec2 = boto3.resource('ec2')
+
+    vpcs = ec2.vpcs.all()
+
+    default_vpc = next(vpc for vpc in vpcs if vpc.is_default)
+
+    return default_vpc
+
+
+def get_avaliable_az():
+
+    vpc = get_default_vpc()
+
+    az = [subnet.availability_zone for subnet in vpc.subnets.all()]
+
+    print(az)
+
+    return az
+
+
+def create_existing_volume(control_tag, device_name, az):
+    ec2 = boto3.resource('ec2')
+
+    volume = ec2.create_volume(
+        AvailabilityZone=az,
+        Encrypted=False,
+        Size=10,
+        VolumeType='gp2',
+        TagSpecifications=[
+            {
+                'ResourceType': 'volume',
+                'Tags': [
+                    {
+                        'Key': control_tag,
+                        'Value': device_name
+                    }
+                ]
+            }
+        ]
+    )
+
+    waiter = get_ec2_waiter('volume_available')
+
+    waiter.wait(VolumeIds=[volume.id])
+
+    return volume
