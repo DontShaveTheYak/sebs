@@ -4,7 +4,7 @@ Module Docstring
 """
 
 __authors__ = ["Levi Blaney", "Neha Singh"]
-__version__ = "0.1.0"
+__version__ = "0.5.0"
 __license__ = "GPLv3"
 
 import sys
