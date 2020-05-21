@@ -11,7 +11,7 @@ def parse_args(args, ver):
 
     # Optional argument which requires a parameter (eg. -d test)
     parser.add_argument("-n", "--name", default='sebs',
-                        help='<Optional> specify a unique name.')
+                        help='<Optional> specify a your app name.')
 
     # Optional verbosity counter (eg. -v, -vv, -vvv, etc.)
     parser.add_argument(
@@ -31,4 +31,12 @@ def parse_args(args, ver):
         parser.print_help(sys.stderr)
         sys.exit(1)
 
-    return parser.parse_args(args)
+    parsed_args = parser.parse_args(args)
+
+    parsed_args.name = parsed_args.name if 'sebs' in parsed_args.name else f'{parsed_args.name}-sebs'
+
+    print(f'x{parsed_args.name}x')
+
+    print(parsed_args)
+
+    return parsed_args
