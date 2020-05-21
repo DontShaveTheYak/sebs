@@ -23,12 +23,12 @@ class TestStatefulVolume(unittest.TestCase):
         self.device_name = '/dev/xdf'
 
         # Setup our ec2 client stubb
-        ec2 = botocore.session.get_session().create_client('ec2')
+        ec2 = botocore.session.get_session().create_client('ec2', region_name='us-west-2')
         self.ec2_client = ec2
         self.stub_client = Stubber(ec2)
 
         # Setup our ec2 resource stub
-        ec2_resource = boto3.resource('ec2')
+        ec2_resource = boto3.resource('ec2', region_name='us-west-2')
         self.stub_resource = Stubber(ec2_resource.meta.client)
 
         # Use mocks to pass out client stubb to our code
