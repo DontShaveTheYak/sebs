@@ -44,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.base_ref == 'master'
     steps:
+    - name: echo branch
+      run: echo ${{github.base_ref}}
     - name: Checkout Code
       uses: actions/checkout@v2
 
