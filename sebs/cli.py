@@ -35,8 +35,4 @@ def parse_args(args, ver):
 
     parsed_args.name = parsed_args.name if 'sebs' in parsed_args.name else f'{parsed_args.name}-sebs'
 
-    print(f'x{parsed_args.name}x')
-
-    print(parsed_args)
-
     return parsed_args
