@@ -20,26 +20,27 @@ class TestArugmentParsing(unittest.TestCase):
                         'Should display the proper version.')
 
     def test_single_backup(self):
-        args = parse_args(['-b test'], '')
+        args = parse_args(['-b', 'test'], '')
         self.assertEqual(len(args.backup), 1)
 
     def test_multiple_backup(self):
-        args = parse_args(['-b test1', '-b test2'], '')
+        args = parse_args(['-b', 'test1', '-b', 'test2'], '')
 
         self.assertEqual(len(args.backup), 2)
 
     def test_default_name(self):
-        args = parse_args(['-b test1', '-b test2'], '')
+        args = parse_args(['-b', 'test1', '-b', 'test2'], '')
 
         self.assertEqual(args.name, 'sebs')
 
     def test_override_name(self):
-        args = parse_args(['-b test1', '-b test2', '-n not-default'], '')
+        args = parse_args(
+            ['-b', 'test1', '-b', 'test2', '-n', 'not-default'], '')
 
-        self.assertEqual(args.name, ' not-default')
+        self.assertEqual(args.name, 'not-default-sebs')
 
     def test_verbose_level(self):
-        args = parse_args(['-b test1', '-b test2', '-vvv'], '')
+        args = parse_args(['-b', 'test1', '-b', 'test2', '-vvv'], '')
 
         self.assertEqual(args.verbose, 4)
 
