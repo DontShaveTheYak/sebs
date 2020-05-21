@@ -43,6 +43,7 @@ jobs:
     name: Functional
     runs-on: ubuntu-latest
     if: github.base_ref == 'master'
+    needs: unit
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
@@ -63,4 +64,4 @@ jobs:
       run: pip install -r requirements.txt
 
     - name: Run Functional Tests
-      run: python -m unittest discover -s test/functional
+      run: python -m unittest discover -s tests/functional
