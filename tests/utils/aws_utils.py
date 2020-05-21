@@ -29,13 +29,28 @@ def create_iam_resources():
 
     role_policy_doc = {'Version': '2012-10-17'}
 
-    role_policy_doc['Statement'] = [{
-        'Action': [
-            "ec2:*"
-        ],
-        'Effect': 'Allow',
-        'Resource': ["arn:aws:ec2:*:*:volume/*", "*"]
-    }]
+    role_policy_doc['Statement'] = [
+        {
+            'Action': [
+                "ec2:DetachVolume",
+                "ec2:AttachVolume",
+                "ec2:DeleteVolume",
+                "ec2:DeleteSnapshot",
+                "ec2:CreateTags",
+                "ec2:CreateSnapshot",
+                "ec2:CreateVolume"
+            ],
+            'Effect': 'Allow',
+            'Resource': ["arn:aws:ec2:*:*:instance/*",
+                         "arn:aws:ec2:*::snapshot/*",
+                         "arn:aws:ec2:*:*:volume/*"]
+        },
+        {
+            'Action': ["ec2:DescribeInstances", "ec2:DescribeVolumes", "ec2:DescribeSnapshots"],
+            'Effect': 'Allow',
+            'Resource': ["*"]
+        }
+    ]
 
     iam_role_policy = iam_role.Policy('Create-Volumes')
 
