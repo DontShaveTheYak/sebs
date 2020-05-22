@@ -102,7 +102,7 @@ class TestSebs(unittest.TestCase):
             aws_utils.create_block_device(device_name))
 
         server_config['UserData'] += (
-            f'/usr/local/bin/sebs -b {device_name} -n {control_tag}\n'
+            f'/usr/local/bin/sebs -b {device_name} -n {control_tag} -vvv\n'
             f'while [ ! -e {device_name} ] ; do sleep 1 ; done\n'
         )
 
@@ -140,7 +140,7 @@ class TestSebs(unittest.TestCase):
             aws_utils.create_block_device(device2_name))
 
         server_config['UserData'] += (
-            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag}\n'
+            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag} -vvv\n'
             f'while [ ! -e {device1_name} ] ; do sleep 1 ; done\n'
             f'while [ ! -e {device2_name} ] ; do sleep 1 ; done\n'
         )
@@ -195,7 +195,7 @@ class TestSebs(unittest.TestCase):
         }
 
         server_config['UserData'] += (
-            f'/usr/local/bin/sebs -b {device_name} -n {control_tag}\n'
+            f'/usr/local/bin/sebs -b {device_name} -n {control_tag} -vvv\n'
             f'while [ ! -e {device_name} ] ; do sleep 1 ; done\n'
         )
 
@@ -260,7 +260,7 @@ class TestSebs(unittest.TestCase):
         }
 
         server_config['UserData'] += (
-            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag}\n'
+            f'/usr/local/bin/sebs -b {device1_name} -b {device2_name} -n {control_tag} -vvv\n'
             f'while [ ! -e {device1_name} ] ; do sleep 1 ; done\n'
             f'while [ ! -e {device2_name} ] ; do sleep 1 ; done\n'
         )
