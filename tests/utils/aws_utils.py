@@ -96,6 +96,8 @@ def create_default_userdata():
         "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n"
         "yum install python3 git -y\n"
         f"python3 -m pip install git+https://github.com/DontShaveTheYak/sebs.git@{git_ref}#egg=sebs --upgrade \n"
+        "export AWS_METADATA_SERVICE_NUM_ATTEMPTS=3"
+        "export AWS_METADATA_SERVICE_TIMEOUT=2"
     )
 
 
@@ -162,18 +164,23 @@ def has_control_tag(control_tag, device_name, volume):
 
 def wait_for_volume_tag(volume):
     i = 0
+    tagged = False
     while True:
         i += 1
 
         volume.reload()
 
         if volume.tags:
+            tagged = True
             break
 
-        time.sleep(10)
+        time.sleep(30)
 
-        if i > 14:
+        if i > 10:
             break
+
+    if not tagged:
+        raise Exception(f'{volume.id} was never tagged.')
 
 
 def get_default_vpc():
