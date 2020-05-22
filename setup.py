@@ -1,11 +1,22 @@
+import os
+import subprocess
 import setuptools
+
+
+release_version = os.getenv('RELEASE_VERSION')
+
+if not release_version:
+    release_version = subprocess.check_output(
+        ["git", "describe"]
+    ).strip().decode('ASCII')
+
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="sebs",
-    version="0.0.1",
+    version=release_version,
     author="Levi Blaney",
     author_email="shadycuz",
     description="Create Stateful Elastic Block Storage on AWS.",

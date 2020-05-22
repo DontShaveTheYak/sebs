@@ -11,7 +11,7 @@ if __name__ == "__main__":
     logging.basicConfig(stream=sys.stderr, level=logging.DEBUG,
                         format='%(name)s (%(levelname)s): %(message)s')
     try:
-        args = cli.parse_args(sys.argv[1:], app.__version__)
+        args = cli.parse_args(sys.argv[1:])
         log.setLevel(max(3 - args.verbose, 0) * 10)
         sys.exit(app.main(args))
     except KeyboardInterrupt:

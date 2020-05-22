@@ -1,8 +1,9 @@
 import sys
 import argparse
+from importlib import metadata
 
 
-def parse_args(args, ver):
+def parse_args(args):
 
     parser = argparse.ArgumentParser()
 
@@ -25,7 +26,7 @@ def parse_args(args, ver):
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s (version {version})".format(version=ver))
+        version="%(prog)s (version {version})".format(version=metadata.version('sebs')))
 
     if len(args) == 0:
         parser.print_help(sys.stderr)
