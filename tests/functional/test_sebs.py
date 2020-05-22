@@ -1,3 +1,4 @@
+import time
 import json
 import boto3
 import unittest
@@ -91,6 +92,8 @@ class TestSebs(unittest.TestCase):
             self.instance_profile.delete()
 
         print('Cleanup Finished')
+
+        time.sleep(60)
 
     def test_new_volume(self):
 

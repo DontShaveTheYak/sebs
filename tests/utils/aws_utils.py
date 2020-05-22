@@ -94,6 +94,7 @@ def create_default_userdata():
     return (
         "#!/bin/bash\n"
         "exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1\n"
+        "sleep 1m\n"
         "yum install python3 git -y\n"
         f"python3 -m pip install git+https://github.com/DontShaveTheYak/sebs.git@{git_ref}#egg=sebs --upgrade \n"
         "export AWS_METADATA_SERVICE_NUM_ATTEMPTS=3 \n"
