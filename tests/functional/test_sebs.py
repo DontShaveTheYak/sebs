@@ -185,6 +185,8 @@ class TestSebs(unittest.TestCase):
         existing_vol = aws_utils.create_existing_volume(
             control_tag, device_name, az[0])
 
+        self.volume_cleanup.append(existing_vol)
+
         server_config = self.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
@@ -296,9 +298,6 @@ class TestSebs(unittest.TestCase):
         new_vol2 = self.ec2.Volume(new2_vol_id)
 
         self.volume_cleanup.extend([new_vol1, new_vol2])
-
-        self.volume_cleanup.append(new_vol1)
-        self.volume_cleanup.append(new_vol2)
 
         self.assertNotEqual(new_vol1.id, default_vol1.id,
                             'Volume attached now should not be what we started with.')
