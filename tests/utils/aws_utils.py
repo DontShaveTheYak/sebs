@@ -1,3 +1,4 @@
+import os
 import json
 import boto3
 import time
@@ -82,9 +83,13 @@ def create_iam_resources():
 
 
 def create_default_userdata():
-    git_ref = subprocess.check_output(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"]
-    ).strip().decode('ASCII')
+
+    git_ref = os.getenv('GITHUB_SHA')
+
+    if not git_ref:
+        git_ref = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+        ).strip().decode('ASCII')
 
     return (
         "#!/bin/bash\n"
