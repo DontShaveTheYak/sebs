@@ -93,7 +93,7 @@ class TestSebs(unittest.TestCase):
 
         print('Cleanup Finished')
 
-        time.sleep(60)
+        time.sleep(120)
 
     def test_new_volume(self):
 
