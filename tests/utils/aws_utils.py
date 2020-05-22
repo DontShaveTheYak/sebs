@@ -174,9 +174,9 @@ def wait_for_volume_tag(volume):
             tagged = True
             break
 
-        time.sleep(30)
+        time.sleep(40)
 
-        if i > 10:
+        if i > 14:
             break
 
     if not tagged:
