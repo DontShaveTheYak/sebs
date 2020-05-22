@@ -31,7 +31,8 @@ setuptools.setup(
     ],
     install_requires=[
         'boto3',
-        'ec2-metadata'
+        'ec2-metadata',
+        'importlib-metadata ~= 1.0 ; python_version < "3.8"'
     ],
     scripts=['bin/sebs'],
     python_requires='>=3.6',

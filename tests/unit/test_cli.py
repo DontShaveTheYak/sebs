@@ -1,8 +1,13 @@
 import unittest
 from io import StringIO
-from importlib import metadata
 from unittest.mock import patch
 from sebs.cli import parse_args
+
+try:
+    from importlib import metadata
+except ImportError:
+    # Running on pre-3.8 Python; use importlib-metadata package
+    import importlib_metadata as metadata
 
 
 class TestArugmentParsing(unittest.TestCase):
