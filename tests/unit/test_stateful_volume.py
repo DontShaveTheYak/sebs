@@ -60,6 +60,14 @@ class TestStatefulVolume(unittest.TestCase):
         self.boto3.resource = MagicMock(
             name='mock_resource_contructor', return_value=self.mock_resource)
 
+        self.mock_session = MagicMock(name='mock_session')
+
+        self.mock_session.client.return_value = self.ec2_client
+
+        self.mock_session.resource.return_value = self.mock_resource
+
+        self.boto3.session.Session = self.mock_session
+
         modules = {
             'boto3': self.boto3,
             'ec2_metadata': MagicMock()
@@ -111,8 +119,11 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.deactivate()
 
     def test_class_properties(self):
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         self.stub_client.assert_no_pending_responses()
 
@@ -152,8 +163,10 @@ class TestStatefulVolume(unittest.TestCase):
                 }
             ]})
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         sv.get_status()
 
@@ -186,8 +199,10 @@ class TestStatefulVolume(unittest.TestCase):
                 }
             ]})
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         sv.get_status()
 
@@ -207,8 +222,10 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.add_response(
             'describe_volumes', response, self.default_params)
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         sv.get_status()
 
@@ -224,8 +241,10 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.add_response(
             'describe_volumes', self.default_response, self.default_params)
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         sv.get_status()
 
@@ -262,8 +281,10 @@ class TestStatefulVolume(unittest.TestCase):
                 }
             ]})
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         sv.get_status()
 
@@ -273,8 +294,10 @@ class TestStatefulVolume(unittest.TestCase):
             Tags=[{'Key': self.tag_name, 'Value': self.device_name}])
 
     def test_copy_new(self):
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
         sv.status = 'New'
 
         response = sv.copy('fakeAZ')
@@ -283,8 +306,10 @@ class TestStatefulVolume(unittest.TestCase):
                          "Should do nothing if status in not 'Not Attached'.")
 
     def test_copy_same_az(self):
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         self.first_volume.availability_zone = 'fakeAZ'
         sv.status = 'Not Attached'
@@ -312,8 +337,10 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.add_response('describe_volumes', {'Volumes': [
                                       {'VolumeId': 'vol-2222', 'State': 'available'}]}, {'VolumeIds': ['vol-2222']})
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
 
         self.first_volume.availability_zone = 'fakeAZ'
         sv.status = 'Not Attached'
@@ -331,8 +358,10 @@ class TestStatefulVolume(unittest.TestCase):
         self.mock_snapshot.delete.assert_called_once()
 
     def test_attach_new(self):
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
         sv.status = 'New'
 
         response = sv.attach()
@@ -364,8 +393,11 @@ class TestStatefulVolume(unittest.TestCase):
         self.stub_client.add_response('describe_volumes', {'Volumes': [
                                       {'VolumeId': 'vol-2222', 'State': 'in-use'}]}, {'VolumeIds': ['vol-2222']})
 
-        sv = self.StatefulVolume(
-            self.instance_id, self.device_name, self.tag_name)
+        sv = self.StatefulVolume(self.mock_session,
+                                 self.instance_id,
+                                 self.device_name,
+                                 self.tag_name)
+
         sv.status = 'Not Attached'
         sv.volume = self.second_volume
 

@@ -13,6 +13,8 @@ for name in logging.Logger.manager.loggerDict.keys():
 
 class Instance:
     def __init__(self, volume_tag):
+        # Create a session so we don't have to keep getting creds.
+        self.session = None
         self.instance = self.get_instance()
         self.volume_tag = volume_tag
         self.backup = []
@@ -32,7 +34,9 @@ class Instance:
             sys.exit(1)
 
         try:
-            ec2 = boto3.resource('ec2', region_name=ec2_metadata.region)
+            self.session = boto3.session.Session(
+                region_name=ec2_metadata.region)
+            ec2 = self.session.resource('ec2')
             instance = ec2.Instance(instance_id)
             # We have to call load to see if we are really connected
             instance.load()
@@ -66,16 +70,17 @@ class Instance:
 
 
 class StatefulVolume:
-    def __init__(self, instance_id, device_name, tag_name):
+    def __init__(self, session, instance_id, device_name, tag_name):
+        # Use the existing session so we dont have to keep fetching creds
+        self.session = session
         self.instance_id = instance_id
         self.device_name = device_name
         self.ready = False
         self.status = 'Unknown'
         self.volume = None
         self.tag_name = tag_name
-        self.ec2_client = boto3.client('ec2', region_name=ec2_metadata.region)
-        self.ec2_resource = boto3.resource(
-            'ec2', region_name=ec2_metadata.region)
+        self.ec2_client = self.session.client('ec2')
+        self.ec2_resource = self.session.resource('ec2')
 
     def get_status(self):
         log.info(f'Checking for previous volume of {self.device_name}')
