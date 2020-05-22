@@ -44,6 +44,8 @@ jobs:
     runs-on: ubuntu-latest
     if: github.base_ref == 'master'
     needs: unit
+    env: 
+      GITHUB_SOURCE_BRANCH: ${{ github.head_ref }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v2
