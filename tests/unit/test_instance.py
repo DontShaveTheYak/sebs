@@ -40,8 +40,14 @@ class TestInstance(unittest.TestCase):
 
         mock_method.assert_called_once()
         mock_volume_class.assert_called_once()
-        mock_volume_class.assert_called_once_with(
-            self.mock_instance.id, self.device_name, self.default_tag)
+
+        # Instead of None it should be a session...
+        # but I can't figure out how to make a mock method (get_instance)
+        # set a class field self.session as a side effect.
+        mock_volume_class.assert_called_once_with(None,
+                                                  self.mock_instance.id,
+                                                  self.device_name,
+                                                  self.default_tag)
         self.assertIn(mock_volume, server.backup,
                       'Should put our device in the backup list.')
         mock_volume.get_status.assert_called_once()
@@ -62,9 +68,10 @@ class TestInstance(unittest.TestCase):
         self.assertEqual(mock_volume_class.call_count, 2,
                          'Should create two volumes.')
 
+        # Same as above test, need to replace None with session
         mock_volume_class.assert_has_calls(
-            [call(self.mock_instance.id, self.device_name, self.default_tag),
-             call(self.mock_instance.id, '/dev/2', self.default_tag)])
+            [call(None, self.mock_instance.id, self.device_name, self.default_tag),
+             call(None, self.mock_instance.id, '/dev/2', self.default_tag)])
 
         self.assertEqual(len(server.backup), 2, 'Should have two volumes.')
         self.assertEqual(mock_volume.get_status.call_count, 2,

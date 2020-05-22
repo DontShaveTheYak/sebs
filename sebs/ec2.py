@@ -49,7 +49,8 @@ class Instance:
 
     def add_stateful_device(self, device_name):
         log.info(f'Handling {device_name}')
-        sv = StatefulVolume(self.instance.id, device_name, self.volume_tag)
+        sv = StatefulVolume(self.session, self.instance.id,
+                            device_name, self.volume_tag)
 
         sv.get_status()
 
