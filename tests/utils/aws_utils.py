@@ -84,7 +84,7 @@ def create_iam_resources():
 
 def create_default_userdata():
 
-    git_ref = os.getenv('GITHUB_SHA')
+    git_ref = os.getenv('GITHUB_REF')
 
     if not git_ref:
         git_ref = subprocess.check_output(
