@@ -1,4 +1,5 @@
 import os
+import datetime
 import subprocess
 import setuptools
 
@@ -6,9 +7,13 @@ import setuptools
 release_version = os.getenv('RELEASE_VERSION')
 
 if not release_version:
-    release_version = subprocess.check_output(
+    tag = subprocess.check_output(
         ["git", "describe", "--abbrev=0"]
     ).strip().decode('ASCII')
+
+    now = datetime.datetime.now()
+
+    release_version = f'{tag}.dev{now.hour}{now.minute}'
 
 
 with open("README.md", "r") as fh:
