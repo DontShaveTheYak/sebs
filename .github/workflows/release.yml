@@ -29,10 +29,12 @@ jobs:
         RELEASE_VERSION: ${{ github.event.ref }}
       run: |
         python setup.py sdist bdist_wheel
-        twine upload dist/*
+        # twine upload dist/*
 
     - name: Create Github Release
       uses: Roang-zero1/github-create-release-action@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         created_tag: ${{ github.event.ref }}
 
