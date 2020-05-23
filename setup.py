@@ -7,7 +7,7 @@ release_version = os.getenv('RELEASE_VERSION')
 
 if not release_version:
     release_version = subprocess.check_output(
-        ["git", "describe"]
+        ["git", "describe", "--abbrev=0"]
     ).strip().decode('ASCII')
 
 
