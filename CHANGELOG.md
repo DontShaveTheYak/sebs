@@ -14,10 +14,16 @@ Categories:
 
 ## [Unreleased]
 
-## [0.5.0] - 05/22/2020
+## [v0.5.1] - 05/23/2020
+### Changed
+- Readme grammar
+- CI/CD and Release Testing
+
+## [v0.5.0] - 05/22/2020
 ### Added
 - Initial release with working functionality.
 
 
-[Unreleased]: https://github.com/DontShaveTheYak/sebs/compare/v0.5.0...develop
-[0.5.0]: https://github.com/DontShaveTheYak/sebs/releases/tag/v0.5.0
+[Unreleased]: https://github.com/DontShaveTheYak/sebs/compare/v0.5.1...develop
+[v0.5.1]: https://github.com/DontShaveTheYak/keep-sebs-changelog/compare/v0.5.0...v0.5.1
+[v0.5.0]: https://github.com/DontShaveTheYak/sebs/releases/tag/v0.5.0
