@@ -9,39 +9,34 @@ from botocore.exceptions import ClientError
 
 class TestSebs(unittest.TestCase):
 
-    def setUp(self):
-        print('Setting up test environment...')
+    @classmethod
+    def setUpClass(cls):
+        print('Setting up environment...')
+
         warnings.filterwarnings(
             "ignore", category=ResourceWarning, message="unclosed.*<ssl.SSLSocket.*>")
 
-        self.volume_cleanup = []
-        self.instance_cleanup = []
-
-        self.ec2 = boto3.resource('ec2')
-
-        self.iam = boto3.resource('iam')
-
         iam_resources = aws_utils.create_iam_resources()
 
-        self.iam_role = iam_resources['role']
+        cls.iam_role = iam_resources['role']
 
-        self.iam_role_policy = iam_resources['policy']
+        cls.iam_role_policy = iam_resources['policy']
 
-        self.instance_profile = iam_resources['profile']
+        cls.instance_profile = iam_resources['profile']
 
-        self.default_user_data = aws_utils.create_default_userdata()
+        cls.default_user_data = aws_utils.create_default_userdata()
 
         ami_id = aws_utils.get_latest_ami()
 
-        self.default_instance = dict(BlockDeviceMappings=[],
-                                     ImageId=ami_id,
-                                     InstanceType='t1.micro',
-                                     MaxCount=1,
-                                     MinCount=1,
-                                     Monitoring={'Enabled': False},
-                                     UserData=self.default_user_data,
-                                     IamInstanceProfile={
-            'Arn': self.instance_profile.arn},
+        cls.default_instance = dict(BlockDeviceMappings=[],
+                                    ImageId=ami_id,
+                                    InstanceType='t1.micro',
+                                    MaxCount=1,
+                                    MinCount=1,
+                                    Monitoring={'Enabled': False},
+                                    UserData=cls.default_user_data,
+                                    IamInstanceProfile={
+            'Arn': cls.instance_profile.arn},
             TagSpecifications=[
             {
                 'ResourceType': 'instance',
@@ -54,11 +49,47 @@ class TestSebs(unittest.TestCase):
             }],
         )
 
-        print('Finished Setup.')
+        print('Environment setup.')
+
+    @classmethod
+    def tearDownClass(cls):
+        print('Cleaning up environment...')
+
+        if cls.instance_profile:
+            print('Removing role from instance profile.')
+            cls.instance_profile.remove_role(
+                RoleName=cls.iam_role.name
+            )
+
+        if cls.iam_role_policy:
+            print(f'Deleting policy: {cls.iam_role_policy}')
+            cls.iam_role_policy.delete()
+
+        if cls.iam_role:
+            print(f'Deleting Role: {cls.iam_role}')
+            cls.iam_role.delete()
+
+        if cls.instance_profile:
+            print(f'Deleting Instance Profile: {cls.instance_profile}')
+            cls.instance_profile.delete()
+
+        print('Environment Cleanup Finished')
+
+    def setUp(self):
+
+        print('Setting up test.')
+        self.volume_cleanup = []
+        self.instance_cleanup = []
+
+        self.ec2 = boto3.resource('ec2')
+
+        self.iam = boto3.resource('iam')
+
+        print('Finished test setup.')
 
     def tearDown(self):
 
-        print('Running Cleanup...')
+        print('Running Test Cleanup...')
         for instance in self.instance_cleanup:
             print(f'Deleting {instance.id}')
             instance.terminate()
@@ -75,27 +106,7 @@ class TestSebs(unittest.TestCase):
                 if e.response['Error']['Code'] != 'InvalidVolume.NotFound':
                     raise e
 
-        if self.instance_profile:
-            print('Removing role from instance profile.')
-            self.instance_profile.remove_role(
-                RoleName=self.iam_role.name
-            )
-
-        if self.iam_role_policy:
-            print(f'Deleting policy: {self.iam_role_policy}')
-            self.iam_role_policy.delete()
-
-        if self.iam_role:
-            print(f'Deleting Role: {self.iam_role}')
-            self.iam_role.delete()
-
-        if self.instance_profile:
-            print(f'Deleting Instance Profile: {self.instance_profile}')
-            self.instance_profile.delete()
-
-        print('Cleanup Finished')
-
-        time.sleep(120)
+        print('Test Cleanup Finished')
 
     def test_new_volume(self):
 
@@ -103,7 +114,7 @@ class TestSebs(unittest.TestCase):
         control_tag = 'new-volume-sebs'
         device_name = '/dev/xvdh'
 
-        server_config = self.default_instance.copy()
+        server_config = self.__class__.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
 
@@ -143,7 +154,7 @@ class TestSebs(unittest.TestCase):
         device1_name = '/dev/xvdh'
         device2_name = '/dev/xvdm'
 
-        server_config = self.default_instance.copy()
+        server_config = self.__class__.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device1_name))
         server_config['BlockDeviceMappings'].append(
@@ -201,7 +212,7 @@ class TestSebs(unittest.TestCase):
 
         self.volume_cleanup.append(existing_vol)
 
-        server_config = self.default_instance.copy()
+        server_config = self.__class__.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device_name))
         server_config['Placement'] = {
@@ -268,7 +279,7 @@ class TestSebs(unittest.TestCase):
 
         self.volume_cleanup.extend([existing_vol1, existing_vol2])
 
-        server_config = self.default_instance.copy()
+        server_config = self.__class__.default_instance.copy()
         server_config['BlockDeviceMappings'].append(
             aws_utils.create_block_device(device1_name))
         server_config['BlockDeviceMappings'].append(
