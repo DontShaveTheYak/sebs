@@ -54,6 +54,8 @@ class TestSebs(unittest.TestCase):
             }],
         )
 
+        print('Finished Setup.')
+
     def tearDown(self):
 
         print('Running Cleanup...')
@@ -97,6 +99,7 @@ class TestSebs(unittest.TestCase):
 
     def test_new_volume(self):
 
+        print('Starting test_new_volume')
         control_tag = 'new-volume-sebs'
         device_name = '/dev/xvdh'
 
@@ -130,7 +133,11 @@ class TestSebs(unittest.TestCase):
 
         self.assertTrue(volume_tagged, 'Volume should have our control tag.')
 
+        print('Finshed test_new_volume')
+
     def test_new_volumes(self):
+
+        print('Starting test_new_volumes')
 
         control_tag = 'new-volumes-sebs'
         device1_name = '/dev/xvdh'
@@ -178,7 +185,11 @@ class TestSebs(unittest.TestCase):
         self.assertTrue(volume1_tagged, 'Volume should have our control tag.')
         self.assertTrue(volume2_tagged, 'Volume should have our control tag.')
 
+        print('Finished test_new_volumes')
+
     def test_existing_volume(self):
+
+        print('Starting test_existing_volume')
 
         control_tag = 'existing-volume-sebs'
         device_name = '/dev/xvdh'
@@ -237,7 +248,11 @@ class TestSebs(unittest.TestCase):
 
         self.assertTrue(volume_tagged, 'Volume should have our control tag.')
 
+        print('Finished test_existing_volume')
+
     def test_existing_volumes(self):
+
+        print('Starting test_existing_volumes')
 
         control_tag = 'existing-volumes-sebs'
         device1_name = '/dev/xvdh'
@@ -324,3 +339,5 @@ class TestSebs(unittest.TestCase):
 
         self.assertTrue(volume1_tagged, 'Volume should have our control tag.')
         self.assertTrue(volume2_tagged, 'Volume should have our control tag.')
+
+        print('Finished test_existing_volumes')
