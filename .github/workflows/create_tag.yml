@@ -1,0 +1,22 @@
+name: Tag
+
+on:
+  pull_request:
+    types: closed
+
+jobs:
+  tag:
+    name: Create Tag
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged && github.base_ref == 'master'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@master
+
+      - name: Create Tag
+        uses: K-Phoen/semver-release-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          release_branch: master
+          release_strategy: tag
