@@ -82,7 +82,7 @@ optional arguments:
   --version             show program's version number and exit
 ```
 
-Note: If you are going to have more than one instance in a single region use sebs then you need to pass in a name.
+Note: If you are going to have more than one instance in a single region use sebs, then you need to pass in a name.
 
 ```
 sebs -b /dev/xvdz -n ${MY_APP_NAME}
