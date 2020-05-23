@@ -80,6 +80,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+
+      - name: Fetch all history
+        run: git fetch --prune --unshallow --tags
   
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -91,21 +94,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
 
-      - name: Calculate Next Version
-        id: next_version
-        uses: K-Phoen/semver-release-action@master
-        with:
-          release_branch: master
-          release_strategy: none
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      # - name: Calculate Next Version
+      #   id: next_version
+      #   uses: K-Phoen/semver-release-action@master
+      #   with:
+      #     release_branch: master
+      #     release_strategy: none
+      #   env:
+      #     GITHUB_TOKEN: ${{ github.token }}
       
       - name: Build and publish
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
-          RELEASE_VERSION: ${{ steps.next_version.outputs.tag }}
         run: |
-          echo "Releasing $RELEASE_VERSION"
           python setup.py sdist bdist_wheel
           twine upload dist/*
