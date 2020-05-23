@@ -18,7 +18,7 @@ setuptools.setup(
     name="sebs",
     version=release_version,
     author="Levi Blaney",
-    author_email="shadycuz",
+    author_email="shadycuz@gmail.com",
     description="Create Stateful Elastic Block Storage on AWS.",
     long_description=long_description,
     long_description_content_type="text/markdown",
