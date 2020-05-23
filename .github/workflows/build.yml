@@ -104,7 +104,7 @@ jobs:
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
-          RELEASE_VERSION: ${{ ${{ steps.next_version.outputs.tag }} }}
+          RELEASE_VERSION: ${{ steps.next_version.outputs.tag }}
         run: |
           echo "Releasing $RELEASE_VERSION"
           python setup.py sdist bdist_wheel
