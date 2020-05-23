@@ -1,7 +1,6 @@
 import os
 import json
 import boto3
-import time
 import subprocess
 
 
@@ -174,7 +173,7 @@ def wait_for_volume_tag(volume):
             tagged = True
             break
 
-        time.sleep(40)
+        time.sleep(30)
 
         if i > 14:
             break
