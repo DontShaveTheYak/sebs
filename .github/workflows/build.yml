@@ -1,4 +1,4 @@
-name: Test
+name: Build
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   unit:
-    name: Unit
+    name: Unit Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -44,9 +44,9 @@ jobs:
       run: python -m unittest discover -s tests/unit
 
   functional:
-    name: Functional
+    name: Functional Tests
     runs-on: ubuntu-latest
-    if: github.base_ref == 'master'
+    if: github.base_ref == 'sdfjsdlfksjd'
     needs: unit
     env: 
       GITHUB_SOURCE_BRANCH: ${{ github.head_ref }}
@@ -71,3 +71,30 @@ jobs:
 
     - name: Run Functional Tests
       run: python -m unittest discover -s tests/functional -f
+
+  pypi:
+    name: Test Pypi
+    runs-on: ubuntu-latest
+    if: github.base_ref == 'master'
+    needs: unit
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+  
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+  
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+      
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_TEST_PASSWORD }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
