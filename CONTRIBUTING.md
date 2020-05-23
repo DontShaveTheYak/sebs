@@ -38,6 +38,8 @@ don't want to.
 python -m unittest discover -s tests/functional/ -f -c
 ```
 
+Note: You need to push your changes upstream before you run the functional test as pip will clone down your current branch.
+
 
 ### Linting
 
