@@ -76,7 +76,7 @@ jobs:
     name: Test Pypi
     runs-on: ubuntu-latest
     if: github.base_ref == 'master'
-    needs: unit
+    needs: [unit, functional]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
